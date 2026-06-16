@@ -2,8 +2,7 @@ import { config } from "../config.ts";
 import { log } from "../log.ts";
 import type { ScrapedProduct } from "../types.ts";
 import { demoProducts } from "./demo.ts";
-import { crawlAmazon, crawlMagalu, crawlMercadoLivre } from "./sites.ts";
-import { crawlAmazonBrowser, crawlMercadoLivreBrowser } from "./browser.ts";
+import { crawlMagalu } from "./sites.ts";
 
 type Crawler = (q: string, max: number) => Promise<ScrapedProduct[]>;
 // DECISION: Magalu only (reliable API with real images)
