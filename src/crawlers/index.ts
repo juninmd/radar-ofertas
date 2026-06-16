@@ -53,18 +53,8 @@ export async function crawlAll(): Promise<ScrapedProduct[]> {
         log.warn(`crawl ${source}/${query} falhou`, (e as Error).message);
       }
 
-      // Fallback to browser crawling if HTTP crawl returned nothing
-      if (items.length === 0 && BROWSER_CRAWLERS[source]) {
-        try {
-          log.debug(`browser fallback ${source}/${query}...`);
-          items = await BROWSER_CRAWLERS[source](query, config.maxPerQuery);
-          if (items.length > 0) {
-            log.info(`[browser] ${source}/${query} -> ${items.length}`);
-          }
-        } catch (e) {
-          log.warn(`browser crawl ${source}/${query} falhou`, (e as Error).message);
-        }
-      }
+      // Browser crawling disabled for Alpine containers
+      // (Playwright Chromium not compatible; use real crawlers or demo fallback)
 
       // Final fallback to demo if both HTTP and browser failed
       if (items.length === 0 && config.allowDemoFallback) {
