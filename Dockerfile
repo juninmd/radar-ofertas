@@ -6,26 +6,8 @@ RUN bun install --production
 FROM oven/bun:1.3-debian AS runtime
 WORKDIR /app
 
-# Install Playwright system dependencies for Debian
+# Minimal system dependencies (no Playwright needed - using Magalu JSON API only)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libnss3 \
-    libnspr4 \
-    libgconf-2-4 \
-    libgbm1 \
-    libxss1 \
-    libappindicator1 \
-    libindicator7 \
-    libappindicator3-1 \
-    libxkbcommon0 \
-    libatk-bridge2.0-0 \
-    libatspi2.0-0 \
-    libgtk-3-0 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libcairo2 \
-    libdbus-1-3 \
-    fontconfig \
-    fonts-dejavu \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
@@ -40,8 +22,8 @@ COPY public ./public
 COPY package.json tsconfig.json ./
 
 RUN mkdir -p /data && \
-    useradd -m -u 1000 app && \
-    chown -R app:app /app /data
+    id app >/dev/null 2>&1 || useradd -m -u 1000 app || useradd -m app && \
+    chown -R app:app /app /data 2>/dev/null || true
 
 USER app
 
