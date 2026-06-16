@@ -1,5 +1,6 @@
 import { config } from "./config.ts";
 import { log } from "./log.ts";
+import { priceSeries } from "./db.ts";
 import type { DealView } from "./db.ts";
 
 const fmt = (n: number) =>
@@ -11,16 +12,47 @@ const SOURCE_LABEL: Record<string, string> = {
   magalu: "Magazine Luiza",
 };
 
-export function buildMessage(d: DealView): string {
+const BARS = "▁▂▃▄▅▆▇█";
+export function sparkline(series: number[]): string {
+  if (series.length < 2) return "";
+  const min = Math.min(...series);
+  const max = Math.max(...series);
+  const range = max - min || 1;
+  return series
+    .map((v) => BARS[Math.min(BARS.length - 1, Math.floor(((v - min) / range) * (BARS.length - 1)))])
+    .join("");
+}
+
+function heat(score: number): string {
+  if (score >= 0.8) return "🔥🔥🔥 IMPERDÍVEL";
+  if (score >= 0.6) return "🔥🔥 ÓTIMA";
+  if (score >= 0.45) return "🔥 BOA";
+  return "✨ razoável";
+}
+
+export function buildCaption(d: DealView): string {
   const label = SOURCE_LABEL[d.source] ?? d.source;
+  const series = priceSeries(d.product_id, 24);
+  const spark = sparkline(series);
+  const isLowest = d.min_price > 0 && d.price <= d.min_price + 0.001;
+  const economia = d.avg_price - d.price;
+
   const lines = [
-    `🔥 <b>OFERTA</b> — ${label}`,
+    `🔥 <b>OFERTA ${heat(d.score)}</b>`,
+    `🏬 ${label} · 🏷️ ${d.category}`,
+    ``,
     `<b>${escapeHtml(d.title)}</b>`,
     ``,
-    `💰 <b>${fmt(d.price)}</b>  <s>${fmt(d.avg_price)}</s>  (-${d.discount_pct.toFixed(0)}%)`,
-    `📊 score ${(d.score * 100).toFixed(0)}/100 · ${d.category}`,
+    `💰 <b>${fmt(d.price)}</b>  <s>${fmt(d.avg_price)}</s>`,
+    `📉 <b>-${d.discount_pct.toFixed(0)}%</b> · economia de ${fmt(economia)} vs média`,
   ];
-  if (d.ai_comment) lines.push(`🤖 ${escapeHtml(d.ai_comment)}`);
+  if (isLowest) lines.push(`🏆 <b>MENOR PREÇO HISTÓRICO!</b>`);
+  lines.push(
+    `📊 mín ${fmt(d.min_price)} · máx ${fmt(d.max_price)} · ${d.points} leituras`,
+  );
+  if (spark) lines.push(`📈 histórico: <code>${spark}</code>`);
+  lines.push(`🎯 score ${(d.score * 100).toFixed(0)}/100`);
+  if (d.ai_comment) lines.push(``, `🤖 <i>${escapeHtml(d.ai_comment)}</i>`);
   lines.push(``, `🔗 ${d.url}`);
   return lines.join("\n");
 }
@@ -42,6 +74,7 @@ function keyboard(dealId: number) {
 }
 
 export async function notifyDeal(d: DealView): Promise<boolean> {
+  const caption = buildCaption(d);
   if (!config.telegram.enabled) {
     log.info(`[telegram dry-run] ${d.title} ${fmt(d.price)}`);
     return false;
@@ -50,26 +83,40 @@ export async function notifyDeal(d: DealView): Promise<boolean> {
     log.warn("Telegram sem credenciais; pulando envio");
     return false;
   }
+  const base = `https://api.telegram.org/bot${config.telegram.botToken}`;
+  // com imagem: sendPhoto (caption tem limite de 1024 chars); sem: sendMessage
+  const hasImg = !!d.image && /^https?:\/\//.test(d.image);
+  const endpoint = hasImg ? "sendPhoto" : "sendMessage";
+  const payload: Record<string, unknown> = hasImg
+    ? { chat_id: config.telegram.chatId, photo: d.image, caption: caption.slice(0, 1024), parse_mode: "HTML" }
+    : { chat_id: config.telegram.chatId, text: caption, parse_mode: "HTML", disable_web_page_preview: false };
+  payload.reply_markup = keyboard(d.id);
+
   try {
-    const res = await fetch(
-      `https://api.telegram.org/bot${config.telegram.botToken}/sendMessage`,
-      {
+    let res = await fetch(`${base}/${endpoint}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    // se o sendPhoto falhar (imagem inacessível), faz fallback p/ texto
+    if (!res.ok && hasImg) {
+      log.warn(`sendPhoto falhou (${res.status}); fallback texto`);
+      res = await fetch(`${base}/sendMessage`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           chat_id: config.telegram.chatId,
-          text: buildMessage(d),
+          text: caption,
           parse_mode: "HTML",
-          disable_web_page_preview: false,
           reply_markup: keyboard(d.id),
         }),
-      },
-    );
+      });
+    }
     if (!res.ok) {
       log.warn(`Telegram HTTP ${res.status}`, await res.text());
       return false;
     }
-    log.info(`Telegram enviado: ${d.title}`);
+    log.info(`Telegram enviado${hasImg ? " 🖼️" : ""}: ${d.title}`);
     return true;
   } catch (e) {
     log.warn("Falha Telegram", (e as Error).message);

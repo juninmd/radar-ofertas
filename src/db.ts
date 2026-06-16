@@ -119,6 +119,14 @@ export function priceStats(productId: number): PriceStats {
   };
 }
 
+const seriesStmt = db.query(
+  "SELECT price FROM price_history WHERE product_id = $pid ORDER BY captured_at DESC, id DESC LIMIT $lim",
+);
+export function priceSeries(productId: number, limit = 20): number[] {
+  const rows = seriesStmt.all({ $pid: productId, $lim: limit }) as { price: number }[];
+  return rows.map((r) => r.price).reverse(); // cronológico
+}
+
 export function getProduct(id: number): ProductRow | null {
   return (db.query("SELECT * FROM products WHERE id = $id").get({ $id: id }) ??
     null) as ProductRow | null;
@@ -170,27 +178,28 @@ export interface DealView {
   reasons: string;
   ai_comment: string | null;
   created_at: string;
+  min_price: number;
+  max_price: number;
+  points: number;
 }
+
+const DEAL_SELECT = `
+  SELECT d.id, d.product_id, p.title, p.url, p.source, p.category, p.image,
+         d.price, d.avg_price, d.discount_pct, d.score, d.reasons, d.ai_comment, d.created_at,
+         (SELECT MIN(price) FROM price_history WHERE product_id = p.id) min_price,
+         (SELECT MAX(price) FROM price_history WHERE product_id = p.id) max_price,
+         (SELECT COUNT(*)   FROM price_history WHERE product_id = p.id) points
+  FROM deals d JOIN products p ON p.id = d.product_id`;
 
 export function recentDeals(limit = 50): DealView[] {
   return db
-    .query(`
-    SELECT d.id, d.product_id, p.title, p.url, p.source, p.category, p.image,
-           d.price, d.avg_price, d.discount_pct, d.score, d.reasons, d.ai_comment, d.created_at
-    FROM deals d JOIN products p ON p.id = d.product_id
-    ORDER BY d.created_at DESC, d.id DESC LIMIT $lim
-  `)
+    .query(`${DEAL_SELECT} ORDER BY d.created_at DESC, d.id DESC LIMIT $lim`)
     .all({ $lim: limit }) as DealView[];
 }
 
 export function dealById(id: number): DealView | null {
-  return (db
-    .query(`
-    SELECT d.id, d.product_id, p.title, p.url, p.source, p.category, p.image,
-           d.price, d.avg_price, d.discount_pct, d.score, d.reasons, d.ai_comment, d.created_at
-    FROM deals d JOIN products p ON p.id = d.product_id WHERE d.id = $id
-  `)
-    .get({ $id: id }) ?? null) as DealView | null;
+  return (db.query(`${DEAL_SELECT} WHERE d.id = $id`).get({ $id: id }) ??
+    null) as DealView | null;
 }
 
 // ── Feedback ────────────────────────────────────────────────────────────────

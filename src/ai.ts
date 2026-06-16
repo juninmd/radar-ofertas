@@ -12,10 +12,12 @@ export async function analyzeDeal(
   if (!config.litellm.enabled || !config.litellm.apiKey) return null;
 
   const prompt =
-    `Você é um caçador de promoções brasileiro. Avalie em 1 frase curta (max 200 caracteres), ` +
-    `em pt-BR, se vale a pena, com tom direto e honesto. Produto: "${title}" (${source}). ` +
-    `Preço atual R$${deal.price.toFixed(2)}, média histórica R$${deal.avg.toFixed(2)}, ` +
-    `desconto ${deal.discountPct.toFixed(1)}%. Se o desconto for fraco, diga que é mediano.`;
+    `Você é o "Faro de Ofertas", um caçador de promoções brasileiro afiado e bem-humorado. ` +
+    `Em UMA frase curta (max 180 caracteres), pt-BR, comece com um veredito em CAIXA ALTA ` +
+    `(COMPRA JÁ / VALE A PENA / MEDIANO / PASSE) seguido de um motivo direto. ` +
+    `Produto: "${title}" (${source}). Preço atual R$${deal.price.toFixed(2)}, ` +
+    `média histórica R$${deal.avg.toFixed(2)}, desconto ${deal.discountPct.toFixed(1)}%. ` +
+    `Seja honesto: se o desconto for fraco, diga MEDIANO ou PASSE.`;
 
   const ctrl = new AbortController();
   const to = setTimeout(() => ctrl.abort(), config.litellm.timeoutMs);

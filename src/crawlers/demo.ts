@@ -41,6 +41,7 @@ export function demoProducts(query: string, source: string, tick: number): Scrap
       externalId,
       title: `${it.title}`,
       url: `https://demo.local/${source}/${encodeURIComponent(query)}/${i}`,
+      image: `https://picsum.photos/seed/${encodeURIComponent(externalId)}/600/600`,
       price: priceFor(it.base * (source === "amazon" ? 1.03 : source === "magalu" ? 0.98 : 1), tick, salt + i),
       query,
     } satisfies ScrapedProduct;

@@ -19,9 +19,11 @@ export async function crawlMercadoLivre(query: string, max: number): Promise<Scr
   const priceRe = /andes-money-amount__fraction[^>]*>([\d.]+)</g;
   const linkRe = /href="(https:\/\/[^"]*?(?:MLB-?\d+|\/p\/MLB\d+)[^"]*)"/g;
 
+  const imgRe = /<img[^>]+(?:data-src|src)="(https:\/\/http2\.mlstatic\.com\/[^"]+)"/g;
   const titles = [...html.matchAll(titleRe)].map((m) => decodeEntities(m[1].trim()));
   const prices = [...html.matchAll(priceRe)].map((m) => parseBrl(m[1]));
   const links = [...html.matchAll(linkRe)].map((m) => m[1]);
+  const images = [...html.matchAll(imgRe)].map((m) => m[1]);
   void cardRe;
 
   const n = Math.min(titles.length, prices.length, max);
@@ -36,6 +38,7 @@ export async function crawlMercadoLivre(query: string, max: number): Promise<Scr
       externalId: idm ? `MLB${idm[1]}` : `ml-${query}-${i}`,
       title,
       url,
+      image: images[i],
       price,
       query,
     });
@@ -59,11 +62,13 @@ export async function crawlAmazon(query: string, max: number): Promise<ScrapedPr
     if (!titleM || !priceM) continue;
     const price = parseBrl(`${priceM[1]},${priceM[2]}`);
     if (!Number.isFinite(price) || price <= 0) continue;
+    const imgM = b.match(/<img[^>]+class="s-image"[^>]+src="(https:\/\/[^"]+)"/);
     out.push({
       source: "amazon",
       externalId: asin,
       title: decodeEntities(titleM[1].trim()),
       url: `https://www.amazon.com.br/dp/${asin}`,
+      image: imgM?.[1],
       price,
       query,
     });
@@ -105,11 +110,13 @@ function findProducts(node: unknown, acc: Omit<ScrapedProduct, "query">[] = []):
   if (typeof title === "string" && (typeof price === "number" || typeof price === "string") && id != null) {
     const n = typeof price === "number" ? price : parseBrl(String(price));
     if (Number.isFinite(n) && n > 0) {
+      const img = (o.image ?? o.images ?? (o.media as Record<string, unknown>)?.path) as unknown;
       acc.push({
         source: "magalu",
         externalId: String(id),
         title: decodeEntities(title),
         url: typeof o.url === "string" ? o.url : `https://www.magazineluiza.com.br/`,
+        image: typeof img === "string" ? img : undefined,
         price: n,
       });
     }

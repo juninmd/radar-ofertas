@@ -5,6 +5,7 @@ import {
   dealById,
   feedbackByCategory,
   insertFeedback,
+  priceSeries,
   recentDeals,
 } from "./db.ts";
 import { runCrawlCycle } from "./pipeline.ts";
@@ -45,7 +46,11 @@ export function startServer() {
 
       if (pathname === "/api/deals" && req.method === "GET") {
         const limit = Number(url.searchParams.get("limit") ?? 50);
-        return json(recentDeals(Math.min(Math.max(limit, 1), 200)));
+        const deals = recentDeals(Math.min(Math.max(limit, 1), 200)).map((d) => ({
+          ...d,
+          series: priceSeries(d.product_id, 24),
+        }));
+        return json(deals);
       }
 
       if (pathname === "/api/stats" && req.method === "GET") {
