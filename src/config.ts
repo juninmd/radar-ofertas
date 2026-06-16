@@ -26,7 +26,9 @@ export const config = {
     .map((s) => s.trim())
     .filter(Boolean),
   maxPerQuery: num("MAX_PER_QUERY", 8),
-  sources: env("CRAWL_SOURCES", "mercadolivre,amazon,magalu")
+  // NOTE: ML e Amazon têm anti-bot agressivo. Browser automation é instável em containers.
+  // Usando apenas Magalu que tem API pública confiável com imagens reais.
+  sources: env("CRAWL_SOURCES", "magalu")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
@@ -37,8 +39,9 @@ export const config = {
   minDiscountPct: num("MIN_DISCOUNT_PCT", 12), // ou desconto >= % sobre a média
   notifyScore: num("NOTIFY_SCORE", 0.5), // score combinado mínimo p/ notificar
 
-  // demo fallback quando o site bloqueia (anti-bot). Garante pipeline observável.
-  allowDemoFallback: bool("ALLOW_DEMO_FALLBACK", true),
+  // demo fallback DISABLED for user requirement: 100% real images
+  // If Magalu returns no products, it's a real issue (rate limit, network, etc)
+  allowDemoFallback: bool("ALLOW_DEMO_FALLBACK", false),
 
   telegram: {
     enabled: bool("TELEGRAM_ENABLED", true),

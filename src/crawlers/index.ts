@@ -6,17 +6,16 @@ import { crawlAmazon, crawlMagalu, crawlMercadoLivre } from "./sites.ts";
 import { crawlAmazonBrowser, crawlMercadoLivreBrowser } from "./browser.ts";
 
 type Crawler = (q: string, max: number) => Promise<ScrapedProduct[]>;
+// DECISION: Magalu only (reliable API with real images)
+// ML/Amazon have aggressive anti-bot detection that breaks HTTP and Browser crawling.
+// Browser automation is unstable in container environments (Playwright runtime issues).
+// Using only proven sources to ensure 100% real product images per user requirement.
 const REAL: Record<string, Crawler> = {
-  mercadolivre: crawlMercadoLivre,
-  amazon: crawlAmazon,
   magalu: crawlMagalu,
 };
 
-// Fallback browsers for sites that block simple HTTP crawlers
-const BROWSER_CRAWLERS: Record<string, Crawler> = {
-  mercadolivre: crawlMercadoLivreBrowser,
-  amazon: crawlAmazonBrowser,
-};
+// Browser crawlers disabled - unreliable for ML/Amazon (blocked, container issues)
+const BROWSER_CRAWLERS: Record<string, Crawler> = {};
 
 // tick global crescente p/ o gerador demo simular variação de preço ao longo
 // das execuções (persistido em arquivo simples).
