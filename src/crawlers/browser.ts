@@ -11,13 +11,34 @@ let browserInstance: Awaited<ReturnType<typeof chromium.launch>> | null = null;
 async function getBrowser() {
   if (!browserInstance) {
     try {
+      // Try system chromium first, fallback to bundled if not available
       browserInstance = await chromium.launch({
         headless: true,
-        args: ["--disable-blink-features=AutomationControlled"],
+        executablePath: "/usr/bin/chromium-browser", // Alpine Linux system chromium
+        args: [
+          "--disable-blink-features=AutomationControlled",
+          "--disable-dev-shm-usage", // Avoid memory issues in container
+          "--no-sandbox", // Required for running in container
+          "--disable-gpu",
+        ],
       });
     } catch (e) {
-      log.warn(`Playwright launch failed: ${(e as Error).message}`);
-      return null;
+      log.warn(`Browser launch failed (system chromium): ${(e as Error).message}`);
+      try {
+        // Fallback: try bundled chromium
+        browserInstance = await chromium.launch({
+          headless: true,
+          args: [
+            "--disable-blink-features=AutomationControlled",
+            "--disable-dev-shm-usage",
+            "--no-sandbox",
+            "--disable-gpu",
+          ],
+        });
+      } catch (e2) {
+        log.warn(`Browser launch failed (bundled): ${(e2 as Error).message}`);
+        return null;
+      }
     }
   }
   return browserInstance;
