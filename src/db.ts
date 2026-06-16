@@ -61,6 +61,13 @@ CREATE TABLE IF NOT EXISTS feedback (
 CREATE INDEX IF NOT EXISTS idx_feedback_cat ON feedback(category);
 `);
 
+// Schema migration: add image_source column to existing products tables
+try {
+  db.exec(`ALTER TABLE products ADD COLUMN image_source TEXT DEFAULT 'unknown';`);
+} catch {
+  // Column already exists, silently ignore
+}
+
 // ── Produtos & histórico ────────────────────────────────────────────────────
 const upsertProductStmt = db.query(`
 INSERT INTO products (source, external_id, title, url, category, image, image_source, query, first_seen, last_seen)
