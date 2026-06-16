@@ -6,6 +6,7 @@ export interface ScrapedProduct {
   price: number; // BRL
   image?: string;
   query: string; // termo de busca que originou
+  imageSource?: "real" | "demo"; // indicates image reality
 }
 
 export interface ProductRow {
@@ -16,6 +17,7 @@ export interface ProductRow {
   url: string;
   category: string;
   image: string | null;
+  image_source: string;
   query: string;
   first_seen: string;
   last_seen: string;

@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS products (
   url         TEXT NOT NULL,
   category    TEXT NOT NULL DEFAULT 'geral',
   image       TEXT,
+  image_source TEXT DEFAULT 'unknown',
   query       TEXT NOT NULL DEFAULT '',
   first_seen  TEXT NOT NULL DEFAULT (datetime('now')),
   last_seen   TEXT NOT NULL DEFAULT (datetime('now')),
@@ -62,10 +63,10 @@ CREATE INDEX IF NOT EXISTS idx_feedback_cat ON feedback(category);
 
 // ── Produtos & histórico ────────────────────────────────────────────────────
 const upsertProductStmt = db.query(`
-INSERT INTO products (source, external_id, title, url, category, image, query, first_seen, last_seen)
-VALUES ($source, $external_id, $title, $url, $category, $image, $query, datetime('now'), datetime('now'))
+INSERT INTO products (source, external_id, title, url, category, image, image_source, query, first_seen, last_seen)
+VALUES ($source, $external_id, $title, $url, $category, $image, $image_source, $query, datetime('now'), datetime('now'))
 ON CONFLICT(source, external_id) DO UPDATE SET
-  title=$title, url=$url, image=$image, query=$query, last_seen=datetime('now')
+  title=$title, url=$url, image=$image, image_source=$image_source, query=$query, last_seen=datetime('now')
 RETURNING id
 `);
 
@@ -77,6 +78,7 @@ export function upsertProduct(p: ScrapedProduct, category: string): number {
     $url: p.url,
     $category: category,
     $image: p.image ?? null,
+    $image_source: p.imageSource ?? 'unknown',
     $query: p.query,
   }) as { id: number };
   return row.id;
@@ -171,6 +173,7 @@ export interface DealView {
   source: string;
   category: string;
   image: string | null;
+  image_source: string;
   price: number;
   avg_price: number;
   discount_pct: number;
@@ -184,7 +187,7 @@ export interface DealView {
 }
 
 const DEAL_SELECT = `
-  SELECT d.id, d.product_id, p.title, p.url, p.source, p.category, p.image,
+  SELECT d.id, d.product_id, p.title, p.url, p.source, p.category, p.image, p.image_source,
          d.price, d.avg_price, d.discount_pct, d.score, d.reasons, d.ai_comment, d.created_at,
          (SELECT MIN(price) FROM price_history WHERE product_id = p.id) min_price,
          (SELECT MAX(price) FROM price_history WHERE product_id = p.id) max_price,
@@ -245,4 +248,40 @@ export function feedbackKeywords(): { keyword: string; score: number }[] {
     }
   }
   return [...map.entries()].map(([keyword, score]) => ({ keyword, score }));
+}
+
+// ── Image Reality Diagnostic ────────────────────────────────────────────────
+export interface ImageStats {
+  total: number;
+  real: number;
+  demo: number;
+  unknown: number;
+  bySource: Record<string, { total: number; real: number; demo: number }>;
+}
+
+export function imageStats(): ImageStats {
+  const rows = db
+    .query(`SELECT source, image_source, COUNT(*) cnt FROM products GROUP BY source, image_source`)
+    .all() as { source: string; image_source: string; cnt: number }[];
+
+  const bySource: Record<string, { total: number; real: number; demo: number }> = {};
+  let total = 0, real = 0, demo = 0, unknown = 0;
+
+  for (const r of rows) {
+    if (!bySource[r.source]) bySource[r.source] = { total: 0, real: 0, demo: 0 };
+    bySource[r.source].total += r.cnt;
+    total += r.cnt;
+
+    if (r.image_source === 'real') {
+      real += r.cnt;
+      bySource[r.source].real += r.cnt;
+    } else if (r.image_source === 'demo') {
+      demo += r.cnt;
+      bySource[r.source].demo += r.cnt;
+    } else {
+      unknown += r.cnt;
+    }
+  }
+
+  return { total, real, demo, unknown, bySource };
 }

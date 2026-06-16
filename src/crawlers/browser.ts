@@ -89,6 +89,7 @@ export async function crawlMercadoLivreBrowser(query: string, max: number): Prom
         image: images[i],
         price,
         query,
+        imageSource: "real",
       });
     }
     log.debug(`ML browser "${query}" -> ${out.length} itens`);
@@ -145,6 +146,7 @@ export async function crawlAmazonBrowser(query: string, max: number): Promise<Sc
         image: imgM?.[1],
         price,
         query,
+        imageSource: "real",
       });
     }
     log.debug(`Amazon browser "${query}" -> ${out.length} itens`);

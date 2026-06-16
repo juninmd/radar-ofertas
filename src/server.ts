@@ -4,6 +4,7 @@ import { keywords } from "./category.ts";
 import {
   dealById,
   feedbackByCategory,
+  imageStats,
   insertFeedback,
   priceSeries,
   recentDeals,
@@ -73,6 +74,10 @@ export function startServer() {
       if (pathname === "/api/crawl" && req.method === "POST") {
         const result = await runCrawlCycle();
         return json(result);
+      }
+
+      if (pathname === "/api/image-stats" && req.method === "GET") {
+        return json(imageStats());
       }
 
       return new Response("not found", { status: 404 });

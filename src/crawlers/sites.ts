@@ -64,6 +64,7 @@ export async function crawlMercadoLivre(query: string, max: number): Promise<Scr
       image: images[i],
       price,
       query,
+      imageSource: "real",
     });
   }
   log.debug(`ML "${query}" -> ${out.length} itens (${html.length} bytes, titles=${titles.length}, prices=${prices.length})`);
@@ -121,6 +122,7 @@ export async function crawlAmazon(query: string, max: number): Promise<ScrapedPr
       image: imgM?.[1],
       price,
       query,
+      imageSource: "real",
     });
   }
   log.debug(`Amazon "${query}" -> ${out.length} itens (${html.length} bytes)`);
@@ -168,6 +170,7 @@ function findProducts(node: unknown, acc: Omit<ScrapedProduct, "query">[] = []):
         url: typeof o.url === "string" ? o.url : `https://www.magazineluiza.com.br/`,
         image: typeof img === "string" ? img : undefined,
         price: n,
+        imageSource: "real",
       });
     }
   }
