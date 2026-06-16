@@ -7,10 +7,25 @@ import { decodeEntities, parseBrl } from "./base.ts";
 // Uses headless Chromium for JavaScript rendering.
 
 let browserInstance: Awaited<ReturnType<typeof chromium.launch>> | null = null;
+let browserInstalled = false;
+
+async function ensureBrowserInstalled() {
+  if (browserInstalled) return;
+  try {
+    log.debug("Installing Playwright browsers (first run)...");
+    const { execSync } = await import("child_process");
+    execSync("bunx playwright install chromium", { stdio: "inherit", timeout: 60000 });
+    browserInstalled = true;
+    log.info("Playwright browsers installed successfully");
+  } catch (e) {
+    log.warn(`Failed to install browsers: ${(e as Error).message}`);
+  }
+}
 
 async function getBrowser() {
   if (!browserInstance) {
     try {
+      await ensureBrowserInstalled();
       browserInstance = await chromium.launch({
         headless: true,
         args: [
@@ -20,6 +35,7 @@ async function getBrowser() {
           "--disable-gpu",
         ],
       });
+      log.info("Browser launched successfully");
     } catch (e) {
       log.warn(`Browser launch failed: ${(e as Error).message}`);
       return null;
