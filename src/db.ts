@@ -61,33 +61,51 @@ CREATE TABLE IF NOT EXISTS feedback (
 CREATE INDEX IF NOT EXISTS idx_feedback_cat ON feedback(category);
 `);
 
-// Schema migration: add image_source column to existing products tables
-try {
-  db.exec(`ALTER TABLE products ADD COLUMN image_source TEXT DEFAULT 'unknown';`);
-} catch {
-  // Column already exists, silently ignore
+// Schema migration: ensure image_source column exists
+const info = db.query("PRAGMA table_info(products);").all() as any[];
+const hasImageSource = info.some((col: any) => col.name === 'image_source');
+if (!hasImageSource) {
+  try {
+    db.exec(`ALTER TABLE products ADD COLUMN image_source TEXT DEFAULT 'unknown';`);
+    console.log("[DB] Added image_source column to products table");
+  } catch (e) {
+    console.log("[DB] Note: image_source column migration failed, will work without it:", (e as Error).message);
+  }
 }
 
 // ── Produtos & histórico ────────────────────────────────────────────────────
-const upsertProductStmt = db.query(`
-INSERT INTO products (source, external_id, title, url, category, image, image_source, query, first_seen, last_seen)
-VALUES ($source, $external_id, $title, $url, $category, $image, $image_source, $query, datetime('now'), datetime('now'))
-ON CONFLICT(source, external_id) DO UPDATE SET
-  title=$title, url=$url, image=$image, image_source=$image_source, query=$query, last_seen=datetime('now')
-RETURNING id
-`);
+// Build upsert statement based on actual schema
+const schemaInfo = db.query("PRAGMA table_info(products);").all() as any[];
+const hasImageSourceCol = schemaInfo.some((col: any) => col.name === 'image_source');
+
+const upsertSQL = hasImageSourceCol
+  ? `INSERT INTO products (source, external_id, title, url, category, image, image_source, query, first_seen, last_seen)
+     VALUES ($source, $external_id, $title, $url, $category, $image, $image_source, $query, datetime('now'), datetime('now'))
+     ON CONFLICT(source, external_id) DO UPDATE SET
+       title=$title, url=$url, image=$image, image_source=$image_source, query=$query, last_seen=datetime('now')
+     RETURNING id`
+  : `INSERT INTO products (source, external_id, title, url, category, image, query, first_seen, last_seen)
+     VALUES ($source, $external_id, $title, $url, $category, $image, $query, datetime('now'), datetime('now'))
+     ON CONFLICT(source, external_id) DO UPDATE SET
+       title=$title, url=$url, image=$image, query=$query, last_seen=datetime('now')
+     RETURNING id`;
+
+const upsertProductStmt = db.query(upsertSQL);
 
 export function upsertProduct(p: ScrapedProduct, category: string): number {
-  const row = upsertProductStmt.get({
+  const params: any = {
     $source: p.source,
     $external_id: p.externalId,
     $title: p.title,
     $url: p.url,
     $category: category,
     $image: p.image ?? null,
-    $image_source: p.imageSource ?? 'unknown',
     $query: p.query,
-  }) as { id: number };
+  };
+  if (hasImageSourceCol) {
+    params.$image_source = p.imageSource ?? 'unknown';
+  }
+  const row = upsertProductStmt.get(params) as { id: number };
   return row.id;
 }
 
