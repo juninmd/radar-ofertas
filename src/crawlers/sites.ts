@@ -9,22 +9,19 @@ import { log } from "../log.ts";
 export async function crawlMercadoLivre(query: string, max: number): Promise<ScrapedProduct[]> {
   const url = `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}`;
   const html = await fetchHtml(url);
-  if (!html) return [];
+  if (!html || html.length < 1000) {
+    log.debug(`ML "${query}" bloqueado ou sem dados (${html?.length || 0} bytes)`);
+    return [];
+  }
   const out: ScrapedProduct[] = [];
-  // cada card: link do produto + título + fração de preço
-  const cardRe =
-    /<a[^>]+href="(https:\/\/(?:produto|www)\.mercad(?:olivre|olibre)\.com\.br\/[^"]+|https:\/\/[^"]*\/MLB-?\d+[^"]*)"[^>]*>[\s\S]*?<\/a>/g;
-  // estratégia simples: título via poly-component__title, preço via fraction
   const titleRe = /poly-component__title[^>]*>\s*(?:<a[^>]*>)?([^<]{6,})/g;
   const priceRe = /andes-money-amount__fraction[^>]*>([\d.]+)</g;
   const linkRe = /href="(https:\/\/[^"]*?(?:MLB-?\d+|\/p\/MLB\d+)[^"]*)"/g;
-
   const imgRe = /<img[^>]+(?:data-src|src)="(https:\/\/http2\.mlstatic\.com\/[^"]+)"/g;
   const titles = [...html.matchAll(titleRe)].map((m) => decodeEntities(m[1].trim()));
   const prices = [...html.matchAll(priceRe)].map((m) => parseBrl(m[1]));
   const links = [...html.matchAll(linkRe)].map((m) => m[1]);
   const images = [...html.matchAll(imgRe)].map((m) => m[1]);
-  void cardRe;
 
   const n = Math.min(titles.length, prices.length, max);
   for (let i = 0; i < n; i++) {
@@ -43,7 +40,7 @@ export async function crawlMercadoLivre(query: string, max: number): Promise<Scr
       query,
     });
   }
-  log.debug(`ML "${query}" -> ${out.length} itens`);
+  log.debug(`ML "${query}" -> ${out.length} itens (${html.length} bytes)`);
   return out;
 }
 
