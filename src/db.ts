@@ -211,31 +211,44 @@ export interface DealView {
   points: number;
 }
 
-// Build DEAL_SELECT based on actual schema
-const dealSelectColumns = hasImageSourceCol
-  ? `d.id, d.product_id, p.title, p.url, p.source, p.category, p.image, p.image_source,
+// Helper to get DEAL_SELECT SQL dynamically based on current schema
+function getDealSelectSQL(): string {
+  try {
+    const cols = db.query("PRAGMA table_info(products);").all() as any[];
+    const hasCol = cols.some((col: any) => col.name === 'image_source');
+    const select = hasCol
+      ? `d.id, d.product_id, p.title, p.url, p.source, p.category, p.image, p.image_source,
          d.price, d.avg_price, d.discount_pct, d.score, d.reasons, d.ai_comment, d.created_at,
          (SELECT MIN(price) FROM price_history WHERE product_id = p.id) min_price,
          (SELECT MAX(price) FROM price_history WHERE product_id = p.id) max_price,
-         (SELECT COUNT(*)   FROM price_history WHERE product_id = p.id) points`
-  : `d.id, d.product_id, p.title, p.url, p.source, p.category, p.image, CAST('unknown' AS TEXT) as image_source,
+         (SELECT COUNT(*) FROM price_history WHERE product_id = p.id) points`
+      : `d.id, d.product_id, p.title, p.url, p.source, p.category, p.image, CAST('unknown' AS TEXT) as image_source,
          d.price, d.avg_price, d.discount_pct, d.score, d.reasons, d.ai_comment, d.created_at,
          (SELECT MIN(price) FROM price_history WHERE product_id = p.id) min_price,
          (SELECT MAX(price) FROM price_history WHERE product_id = p.id) max_price,
-         (SELECT COUNT(*)   FROM price_history WHERE product_id = p.id) points`;
-
-const DEAL_SELECT = `
-  SELECT ${dealSelectColumns}
-  FROM deals d JOIN products p ON p.id = d.product_id`;
+         (SELECT COUNT(*) FROM price_history WHERE product_id = p.id) points`;
+    return `SELECT ${select} FROM deals d JOIN products p ON p.id = d.product_id`;
+  } catch {
+    // Fallback: assume image_source doesn't exist
+    return `SELECT d.id, d.product_id, p.title, p.url, p.source, p.category, p.image, CAST('unknown' AS TEXT) as image_source,
+         d.price, d.avg_price, d.discount_pct, d.score, d.reasons, d.ai_comment, d.created_at,
+         (SELECT MIN(price) FROM price_history WHERE product_id = p.id) min_price,
+         (SELECT MAX(price) FROM price_history WHERE product_id = p.id) max_price,
+         (SELECT COUNT(*) FROM price_history WHERE product_id = p.id) points
+         FROM deals d JOIN products p ON p.id = d.product_id`;
+  }
+}
 
 export function recentDeals(limit = 50): DealView[] {
+  const sql = getDealSelectSQL();
   return db
-    .query(`${DEAL_SELECT} ORDER BY d.created_at DESC, d.id DESC LIMIT $lim`)
+    .query(`${sql} ORDER BY d.created_at DESC, d.id DESC LIMIT $lim`)
     .all({ $lim: limit }) as DealView[];
 }
 
 export function dealById(id: number): DealView | null {
-  return (db.query(`${DEAL_SELECT} WHERE d.id = $id`).get({ $id: id }) ??
+  const sql = getDealSelectSQL();
+  return (db.query(`${sql} WHERE d.id = $id`).get({ $id: id }) ??
     null) as DealView | null;
 }
 
