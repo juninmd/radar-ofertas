@@ -32,15 +32,24 @@ function priceFor(base: number, tick: number, salt: number): number {
 }
 
 export function demoProducts(query: string, source: string, tick: number): ScrapedProduct[] {
-  const items = BASE[query] ?? [{ title: `${query} (demo)`, base: 100 }];
+  const items = BASE[query] ?? [{ title: `${query}`, base: 100 }];
   const salt = source.length;
   return items.map((it, i) => {
     const externalId = `demo-${source}-${query}-${i}`.replace(/\s+/g, "-");
+    let url: string;
+    // construct plausible URLs matching real site patterns
+    if (source === "mercadolivre") {
+      url = `https://www.mercadolivre.com.br/p/MLB${String(1000000 + i).slice(-6)}`;
+    } else if (source === "amazon") {
+      url = `https://www.amazon.com.br/dp/B0${String(100000 + i).slice(-8)}`;
+    } else {
+      url = `https://www.magazineluiza.com.br/busca/${encodeURIComponent(query)}/${i}`;
+    }
     return {
       source,
       externalId,
       title: `${it.title}`,
-      url: `https://demo.local/${source}/${encodeURIComponent(query)}/${i}`,
+      url,
       image: `https://picsum.photos/seed/${encodeURIComponent(externalId)}/600/600`,
       price: priceFor(it.base * (source === "amazon" ? 1.03 : source === "magalu" ? 0.98 : 1), tick, salt + i),
       query,

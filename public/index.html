@@ -30,6 +30,18 @@
       .like.on { background: #238636; border-color: #2ea043; }
       .dislike.on { background: #da3633; border-color: #f85149; }
       .empty { padding: 60px 24px; text-align: center; color: #8b949e; }
+      .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
+      .modal.open { display: flex; }
+      .modal-content { background: #0d1117; border: 1px solid #21262d; border-radius: 12px; padding: 24px; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto; }
+      .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+      .modal-header h2 { margin: 0; font-size: 18px; }
+      .modal-close { background: none; border: none; color: #8b949e; cursor: pointer; font-size: 24px; padding: 0; }
+      .modal-close:hover { color: #e6edf3; }
+      .chart-container { width: 100%; height: 300px; margin: 16px 0; }
+      .chart-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; font-size: 13px; }
+      .stat-box { border: 1px solid #21262d; border-radius: 8px; padding: 12px; background: #161b22; }
+      .stat-label { color: #8b949e; margin-bottom: 4px; }
+      .stat-value { font-size: 16px; font-weight: 600; color: #3fb950; }
     </style>
   </head>
   <body>
@@ -41,6 +53,18 @@
       <button onclick="load()">Atualizar</button>
     </header>
     <div id="app" class="grid"></div>
+    <div id="chartModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="chartTitle">Histórico de Preços</h2>
+          <button class="modal-close" onclick="closeChart()">×</button>
+        </div>
+        <div class="chart-container">
+          <canvas id="priceChart"></canvas>
+        </div>
+        <div class="chart-stats" id="chartStats"></div>
+      </div>
+    </div>
     <script>
       const BRL = (n) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       const SRC = { mercadolivre: "Mercado Livre", amazon: "Amazon", magalu: "Magazine Luiza" };
@@ -78,6 +102,7 @@
           <div class="row">
             <button class="like" onclick="vote(${d.id},1,this)">👍 Curtir</button>
             <button class="dislike" onclick="vote(${d.id},-1,this)">👎</button>
+            <button onclick="showChart(${d.id}, '${esc(d.title)}', ${JSON.stringify(d.series)})">📈 Histórico</button>
             <a href="${d.url}" target="_blank" rel="noopener">ver produto →</a>
           </div>
         </div>`;
@@ -102,6 +127,103 @@
       }
 
       function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+      function showChart(id, title, series) {
+        if (!series || series.length < 2) {
+          alert("Histórico insuficiente para gráfico");
+          return;
+        }
+        document.getElementById("chartTitle").textContent = `Histórico: ${title}`;
+        document.getElementById("chartModal").classList.add("open");
+        drawChart(series);
+        updateChartStats(series);
+      }
+
+      function closeChart() {
+        document.getElementById("chartModal").classList.remove("open");
+      }
+
+      function drawChart(prices) {
+        const canvas = document.getElementById("priceChart");
+        const ctx = canvas.getContext("2d");
+        const w = canvas.offsetWidth;
+        const h = canvas.offsetHeight;
+        canvas.width = w;
+        canvas.height = h;
+
+        const mn = Math.min(...prices);
+        const mx = Math.max(...prices);
+        const range = mx - mn || 1;
+        const padding = 40;
+
+        ctx.fillStyle = "#0d1117";
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = "#21262d";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(padding, padding);
+        ctx.lineTo(padding, h - padding);
+        ctx.lineTo(w - padding, h - padding);
+        ctx.stroke();
+
+        ctx.fillStyle = "#8b949e";
+        ctx.font = "12px monospace";
+        ctx.textAlign = "right";
+        ctx.fillText(BRL(mx), padding - 10, padding + 5);
+        ctx.fillText(BRL(mn), padding - 10, h - padding + 5);
+
+        ctx.strokeStyle = "#58a6ff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        prices.forEach((p, i) => {
+          const x = padding + (i / (prices.length - 1)) * (w - 2 * padding);
+          const y = h - padding - ((p - mn) / range) * (h - 2 * padding);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        ctx.fillStyle = "#3fb950";
+        prices.forEach((p, i) => {
+          const x = padding + (i / (prices.length - 1)) * (w - 2 * padding);
+          const y = h - padding - ((p - mn) / range) * (h - 2 * padding);
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function updateChartStats(prices) {
+        const mn = Math.min(...prices);
+        const mx = Math.max(...prices);
+        const avg = prices.reduce((a, b) => a + b) / prices.length;
+        const current = prices[prices.length - 1];
+        const chg = ((current - avg) / avg * 100).toFixed(1);
+        document.getElementById("chartStats").innerHTML = `
+          <div class="stat-box">
+            <div class="stat-label">Mínimo</div>
+            <div class="stat-value">${BRL(mn)}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Máximo</div>
+            <div class="stat-value">${BRL(mx)}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Média</div>
+            <div class="stat-value">${BRL(avg)}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Atual vs Média</div>
+            <div class="stat-value" style="color: ${chg < 0 ? '#3fb950' : '#f85149'}">${chg > 0 ? '+' : ''}${chg}%</div>
+          </div>
+        `;
+      }
+
+      window.addEventListener("click", (e) => {
+        const modal = document.getElementById("chartModal");
+        if (e.target === modal) modal.classList.remove("open");
+      });
+
       load();
     </script>
   </body>
