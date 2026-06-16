@@ -154,6 +154,19 @@ export function priceSeries(productId: number, limit = 20): number[] {
   return rows.map((r) => r.price).reverse(); // cronológico
 }
 
+export interface PricePoint {
+  price: number;
+  captured_at: string;
+}
+
+const seriesWithDateStmt = db.query(
+  "SELECT price, captured_at FROM price_history WHERE product_id = $pid ORDER BY captured_at DESC, id DESC LIMIT $lim",
+);
+export function priceSeriesWithDates(productId: number, limit = 20): PricePoint[] {
+  const rows = seriesWithDateStmt.all({ $pid: productId, $lim: limit }) as PricePoint[];
+  return rows.reverse(); // cronológico
+}
+
 export function getProduct(id: number): ProductRow | null {
   return (db.query("SELECT * FROM products WHERE id = $id").get({ $id: id }) ??
     null) as ProductRow | null;

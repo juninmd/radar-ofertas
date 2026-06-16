@@ -7,6 +7,7 @@ import {
   imageStats,
   insertFeedback,
   priceSeries,
+  priceSeriesWithDates,
   recentDeals,
 } from "./db.ts";
 import { runCrawlCycle } from "./pipeline.ts";
@@ -50,6 +51,10 @@ export function startServer() {
         const deals = recentDeals(Math.min(Math.max(limit, 1), 200)).map((d) => ({
           ...d,
           series: priceSeries(d.product_id, 24),
+          seriesDates: priceSeriesWithDates(d.product_id, 24).map(p => ({
+            price: p.price,
+            date: p.captured_at
+          })),
         }));
         return json(deals);
       }

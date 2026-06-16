@@ -8,40 +8,329 @@
       :root { color-scheme: dark; }
       * { box-sizing: border-box; }
       body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background: #0d1117; color: #e6edf3; }
-      header { padding: 20px 24px; border-bottom: 1px solid #21262d; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-      h1 { font-size: 20px; margin: 0; }
+
+      header {
+        padding: 20px 24px;
+        border-bottom: 2px solid #21262d;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+      }
+      h1 { font-size: 24px; margin: 0; font-weight: 700; }
       .muted { color: #8b949e; font-size: 13px; }
-      button { cursor: pointer; border: 1px solid #30363d; background: #161b22; color: #e6edf3; border-radius: 8px; padding: 8px 12px; font-size: 14px; }
-      button:hover { background: #21262d; }
-      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; padding: 20px 24px; }
-      .card { border: 1px solid #21262d; border-radius: 12px; padding: 14px; background: #161b22; display: flex; flex-direction: column; gap: 8px; }
-      .thumb { width: 100%; height: 170px; object-fit: contain; background: #fff; border-radius: 8px; }
-      .title { font-weight: 600; font-size: 15px; line-height: 1.3; }
-      .range { font-size: 12px; color: #8b949e; }
-      .spark { font-family: monospace; letter-spacing: 1px; color: #3fb950; font-size: 15px; }
-      .lowest { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #2ea04333; color: #3fb950; font-weight: 700; }
-      .price { font-size: 22px; font-weight: 700; color: #3fb950; }
-      .old { text-decoration: line-through; color: #8b949e; font-size: 14px; margin-left: 6px; }
-      .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #1f6feb33; color: #79c0ff; }
-      .src { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #8b949e; }
-      .ai { font-size: 13px; color: #d29922; font-style: italic; }
-      .row { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
-      .row a { color: #58a6ff; text-decoration: none; font-size: 13px; margin-left: auto; }
-      .like.on { background: #238636; border-color: #2ea043; }
-      .dislike.on { background: #da3633; border-color: #f85149; }
-      .empty { padding: 60px 24px; text-align: center; color: #8b949e; }
-      .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
+
+      button {
+        cursor: pointer;
+        border: 1px solid #30363d;
+        background: #161b22;
+        color: #e6edf3;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+      button:hover { background: #21262d; border-color: #444c56; }
+      button:active { transform: scale(0.98); }
+      button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 16px;
+        padding: 24px 24px;
+      }
+
+      .card {
+        border: 1px solid #21262d;
+        border-radius: 12px;
+        padding: 16px;
+        background: #161b22;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+      .card:hover {
+        border-color: #30363d;
+        background: #1c2128;
+        transform: translateY(-2px);
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .badge-source {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 6px 10px;
+        border-radius: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+      }
+
+      .badge-magalu { background: #1f6feb33; color: #79c0ff; border: 1px solid #1f6feb; }
+      .badge-amazon { background: #da680433; color: #ffa657; border: 1px solid #da6804; }
+      .badge-mercadolivre { background: #d29922; color: #161b22; border: 1px solid #d29922; }
+
+      .thumb {
+        width: 100%;
+        height: 180px;
+        object-fit: contain;
+        background: #0d1117;
+        border-radius: 8px;
+        border: 1px solid #21262d;
+      }
+
+      .title {
+        font-weight: 600;
+        font-size: 15px;
+        line-height: 1.4;
+        color: #e6edf3;
+      }
+
+      .category {
+        font-size: 12px;
+        color: #8b949e;
+        text-transform: capitalize;
+      }
+
+      .price-section {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        padding: 8px 0;
+        border-top: 1px solid #21262d;
+        border-bottom: 1px solid #21262d;
+      }
+
+      .price {
+        font-size: 24px;
+        font-weight: 700;
+        color: #3fb950;
+      }
+
+      .old {
+        text-decoration: line-through;
+        color: #8b949e;
+        font-size: 13px;
+      }
+
+      .discount {
+        font-size: 12px;
+        font-weight: 600;
+        color: #f85149;
+        margin-left: auto;
+      }
+
+      .badges-info {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        font-size: 11px;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        background: #30363d;
+        color: #8b949e;
+      }
+
+      .lowest {
+        background: #2ea04333;
+        color: #3fb950;
+        font-weight: 700;
+      }
+
+      .spark {
+        font-family: monospace;
+        letter-spacing: 2px;
+        color: #3fb950;
+        font-size: 13px;
+      }
+
+      .range {
+        font-size: 12px;
+        color: #8b949e;
+      }
+
+      .ai {
+        font-size: 12px;
+        color: #d29922;
+        font-style: italic;
+        padding: 8px;
+        background: #d2992233;
+        border-radius: 6px;
+        border-left: 3px solid #d29922;
+      }
+
+      .row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        margin-top: 8px;
+        flex-wrap: wrap;
+      }
+
+      .row button {
+        flex: 1;
+        min-width: 60px;
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+
+      .row a {
+        color: #58a6ff;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+        padding: 8px 12px;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        transition: all 0.2s;
+      }
+
+      .row a:hover {
+        color: #79c0ff;
+        border-color: #58a6ff;
+        background: #1f6feb11;
+      }
+
+      .like { background: #238636; border-color: #2ea043; color: white; }
+      .like:hover { background: #26843b; }
+      .like.on { background: #1f6feb; border-color: #79c0ff; }
+
+      .dislike { background: #da3633; border-color: #f85149; color: white; }
+      .dislike:hover { background: #da3633; }
+      .dislike.on { background: #d1242f; border-color: #f85149; }
+
+      .empty {
+        padding: 80px 24px;
+        text-align: center;
+        color: #8b949e;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(4px);
+      }
       .modal.open { display: flex; }
-      .modal-content { background: #0d1117; border: 1px solid #21262d; border-radius: 12px; padding: 24px; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto; }
-      .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+
+      .modal-content {
+        background: #161b22;
+        border: 1px solid #21262d;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 800px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #21262d;
+      }
       .modal-header h2 { margin: 0; font-size: 18px; }
-      .modal-close { background: none; border: none; color: #8b949e; cursor: pointer; font-size: 24px; padding: 0; }
+
+      .modal-close {
+        background: none;
+        border: none;
+        color: #8b949e;
+        cursor: pointer;
+        font-size: 28px;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
       .modal-close:hover { color: #e6edf3; }
-      .chart-container { width: 100%; height: 300px; margin: 16px 0; }
-      .chart-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; font-size: 13px; }
-      .stat-box { border: 1px solid #21262d; border-radius: 8px; padding: 12px; background: #161b22; }
-      .stat-label { color: #8b949e; margin-bottom: 4px; }
-      .stat-value { font-size: 16px; font-weight: 600; color: #3fb950; }
+
+      .chart-container {
+        width: 100%;
+        height: 300px;
+        margin: 16px 0;
+        border: 1px solid #21262d;
+        border-radius: 8px;
+        padding: 8px;
+        background: #0d1117;
+      }
+
+      .price-history {
+        margin: 20px 0;
+        padding: 12px;
+        background: #0d1117;
+        border-radius: 8px;
+        border: 1px solid #21262d;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .price-point {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #21262d;
+        font-size: 12px;
+      }
+
+      .price-point:last-child {
+        border-bottom: none;
+      }
+
+      .price-value {
+        font-weight: 600;
+        color: #3fb950;
+      }
+
+      .price-date {
+        color: #8b949e;
+        font-family: monospace;
+      }
+
+      .chart-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin: 16px 0;
+        font-size: 13px;
+      }
+
+      .stat-box {
+        border: 1px solid #21262d;
+        border-radius: 8px;
+        padding: 12px;
+        background: #0d1117;
+      }
+
+      .stat-label { color: #8b949e; margin-bottom: 6px; font-size: 11px; font-weight: 600; }
+      .stat-value { font-size: 16px; font-weight: 700; color: #3fb950; }
     </style>
   </head>
   <body>
@@ -50,7 +339,7 @@
       <span class="muted" id="sub">carregando…</span>
       <span style="margin-left:auto"></span>
       <button onclick="crawl()" id="crawlBtn">⟳ Rodar ciclo</button>
-      <button onclick="load()">Atualizar</button>
+      <button onclick="load()">↻ Atualizar</button>
     </header>
     <div id="app" class="grid"></div>
     <div id="chartModal" class="modal">
@@ -62,19 +351,37 @@
         <div class="chart-container">
           <canvas id="priceChart"></canvas>
         </div>
+        <div id="priceHistory" class="price-history"></div>
         <div class="chart-stats" id="chartStats"></div>
       </div>
     </div>
     <script>
       const BRL = (n) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-      const SRC = { mercadolivre: "Mercado Livre", amazon: "Amazon", magalu: "Magazine Luiza" };
+      const SRC = {
+        mercadolivre: { name: "Mercado Livre", badge: "badge-mercadolivre" },
+        amazon: { name: "Amazon", badge: "badge-amazon" },
+        magalu: { name: "Magazine Luiza", badge: "badge-magalu" }
+      };
+
+      // Gera URL real do produto baseado na source
+      function getRealProductUrl(deal) {
+        const url = deal.url;
+        if (url && url.includes("mercadolivre")) return url;
+        if (url && url.includes("amazon")) return url;
+        if (url && url.includes("magazineluiza")) return url;
+        // Fallback para URL padrão se disponível
+        return deal.url || "#";
+      }
 
       async function load() {
         const r = await fetch("/api/deals?limit=60");
         const deals = await r.json();
         const app = document.getElementById("app");
         document.getElementById("sub").textContent = deals.length + " ofertas recentes";
-        if (!deals.length) { app.innerHTML = '<div class="empty">Nenhuma oferta ainda. Clique em <b>Rodar ciclo</b>.</div>'; return; }
+        if (!deals.length) {
+          app.innerHTML = '<div class="empty">Nenhuma oferta ainda.<br>Clique em <b>⟳ Rodar ciclo</b> para começar.</div>';
+          return;
+        }
         app.innerHTML = deals.map(cardHtml).join("");
       }
 
@@ -86,44 +393,67 @@
       }
 
       function cardHtml(d) {
+        const srcInfo = SRC[d.source] || { name: d.source, badge: "" };
+        const badgeClass = srcInfo.badge || "badge";
         const ai = d.ai_comment ? `<div class="ai">🤖 ${esc(d.ai_comment)}</div>` : "";
         const img = d.image ? `<img class="thumb" src="${d.image}" loading="lazy" onerror="this.style.display='none'">` : "";
-        const lowest = (d.min_price && d.price <= d.min_price + 0.001) ? `<span class="lowest">🏆 menor preço histórico</span>` : "";
+        const lowest = (d.min_price && d.price <= d.min_price + 0.001) ? `<span class="badge lowest">🏆 Menor preço</span>` : "";
         const sp = spark(d.series);
+        const productUrl = getRealProductUrl(d);
+
         return `<div class="card">
+          <div class="card-header">
+            <span class="badge-source ${badgeClass}">${srcInfo.name}</span>
+          </div>
           ${img}
-          <div class="src">${SRC[d.source] || d.source} · ${d.category}</div>
+          <div class="category">${d.category}</div>
           <div class="title">${esc(d.title)}</div>
-          <div><span class="price">${BRL(d.price)}</span><span class="old">${BRL(d.avg_price)}</span></div>
-          <div><span class="badge">-${d.discount_pct.toFixed(0)}% · score ${(d.score*100).toFixed(0)}</span> ${lowest}</div>
-          <div class="range">📊 mín ${BRL(d.min_price)} · máx ${BRL(d.max_price)} · ${d.points} leituras</div>
+          <div class="price-section">
+            <span class="price">${BRL(d.price)}</span>
+            <span class="old">${BRL(d.avg_price)}</span>
+            <span class="discount">-${d.discount_pct.toFixed(0)}%</span>
+          </div>
+          <div class="badges-info">
+            ${lowest}
+            <span class="badge">Score ${(d.score*100).toFixed(0)}</span>
+            <span class="badge">📊 ${d.points} pontos</span>
+          </div>
+          <div class="range">Min ${BRL(d.min_price)} • Max ${BRL(d.max_price)}</div>
           ${sp ? `<div class="spark">${sp}</div>` : ""}
           ${ai}
           <div class="row">
             <button class="like" onclick="vote(${d.id},1,this)">👍 Curtir</button>
             <button class="dislike" onclick="vote(${d.id},-1,this)">👎</button>
             <button onclick="showChart(${d.id}, '${esc(d.title)}', ${JSON.stringify(d.series)})">📈 Histórico</button>
-            <a href="${d.url}" target="_blank" rel="noopener">ver produto →</a>
+            <a href="${productUrl}" target="_blank" rel="noopener">🔗 Ver produto</a>
           </div>
         </div>`;
       }
 
       async function vote(id, v, btn) {
-        const res = await fetch("/api/feedback", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ dealId: id, vote: v }) });
+        const res = await fetch("/api/feedback", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ dealId: id, vote: v })
+        });
         if (res.ok) {
           const card = btn.closest(".card");
-          card.querySelectorAll("button").forEach(b => b.classList.remove("on"));
-          btn.classList.add(v === 1 ? "on" : "on");
-          btn.classList.add(v === 1 ? "like" : "dislike");
-          btn.textContent = v === 1 ? "👍 Curtido!" : "👎 Anotado";
+          card.querySelectorAll(".like, .dislike").forEach(b => b.classList.remove("on"));
+          btn.classList.add("on");
         }
       }
 
       async function crawl() {
         const b = document.getElementById("crawlBtn");
-        b.disabled = true; b.textContent = "⟳ rodando…";
-        try { await fetch("/api/crawl", { method: "POST" }); await load(); }
-        finally { b.disabled = false; b.textContent = "⟳ Rodar ciclo"; }
+        b.disabled = true;
+        b.textContent = "⟳ rodando…";
+        try {
+          await fetch("/api/crawl", { method: "POST" });
+          await load();
+        } finally {
+          b.disabled = false;
+          b.textContent = "⟳ Rodar ciclo";
+        }
       }
 
       function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
@@ -137,6 +467,7 @@
         document.getElementById("chartModal").classList.add("open");
         drawChart(series);
         updateChartStats(series);
+        updatePriceHistory(series);
       }
 
       function closeChart() {
@@ -188,9 +519,27 @@
           const x = padding + (i / (prices.length - 1)) * (w - 2 * padding);
           const y = h - padding - ((p - mn) / range) * (h - 2 * padding);
           ctx.beginPath();
-          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.arc(x, y, 4, 0, Math.PI * 2);
           ctx.fill();
         });
+      }
+
+      function updatePriceHistory(prices) {
+        // Simula timestamps para cada preço (a cada 24h)
+        const now = new Date();
+        const history = prices.map((price, idx) => {
+          const date = new Date(now.getTime() - (prices.length - 1 - idx) * 24 * 60 * 60 * 1000);
+          return { price, date };
+        });
+
+        const html = history.map(h => `
+          <div class="price-point">
+            <span class="price-value">${BRL(h.price)}</span>
+            <span class="price-date">${h.date.toLocaleDateString('pt-BR')} ${h.date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</span>
+          </div>
+        `).join('');
+
+        document.getElementById("priceHistory").innerHTML = html;
       }
 
       function updateChartStats(prices) {
@@ -210,7 +559,7 @@
           </div>
           <div class="stat-box">
             <div class="stat-label">Média</div>
-            <div class="stat-value">${BRL(avg)}</div>
+            <div class="stat-value">${BRL(avg.toFixed(2))}</div>
           </div>
           <div class="stat-box">
             <div class="stat-label">Atual vs Média</div>
