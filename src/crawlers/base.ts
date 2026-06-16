@@ -11,11 +11,11 @@ function getUA(): string {
   return UAS[Math.floor(Math.random() * UAS.length)];
 }
 
-export async function fetchHtml(url: string, timeoutMs = 15000): Promise<string | null> {
+export async function fetchHtml(url: string, timeoutMs = 12000): Promise<string | null> {
   const ctrl = new AbortController();
   const to = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    await new Promise(r => setTimeout(r, 500 + Math.random() * 1500)); // throttle
+    await new Promise(r => setTimeout(r, 200 + Math.random() * 300)); // modest throttle
     const res = await fetch(url, {
       signal: ctrl.signal,
       headers: {
