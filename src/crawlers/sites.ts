@@ -9,17 +9,43 @@ import { log } from "../log.ts";
 export async function crawlMercadoLivre(query: string, max: number): Promise<ScrapedProduct[]> {
   const url = `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}`;
   const html = await fetchHtml(url);
-  if (!html || html.length < 1000) {
+  if (!html || html.length < 5000) {
     log.debug(`ML "${query}" bloqueado ou sem dados (${html?.length || 0} bytes)`);
     return [];
   }
   const out: ScrapedProduct[] = [];
-  const titleRe = /poly-component__title[^>]*>\s*(?:<a[^>]*>)?([^<]{6,})/g;
-  const priceRe = /andes-money-amount__fraction[^>]*>([\d.]+)</g;
+
+  // Try multiple regex patterns to be resilient to markup changes
+  const titleRes = [
+    /poly-component__title[^>]*>\s*(?:<a[^>]*>)?([^<]{6,})/g,
+    /data-component-type="s-search-result"[^>]*>[\s\S]*?<h2[^>]*>([^<]{6,})<\/h2/g,
+    /<span[^>]*class="[^"]*title[^"]*"[^>]*>([^<]{6,})</g,
+  ];
+
+  const priceRes = [
+    /andes-money-amount__fraction[^>]*>([\d.]+)</g,
+    /price-tag[^>]*>(R\$\s*[\d.,]+)/g,
+    /data-price="([\d.]+)"/g,
+  ];
+
   const linkRe = /href="(https:\/\/[^"]*?(?:MLB-?\d+|\/p\/MLB\d+)[^"]*)"/g;
-  const imgRe = /<img[^>]+(?:data-src|src)="(https:\/\/http2\.mlstatic\.com\/[^"]+)"/g;
-  const titles = [...html.matchAll(titleRe)].map((m) => decodeEntities(m[1].trim()));
-  const prices = [...html.matchAll(priceRe)].map((m) => parseBrl(m[1]));
+  const imgRe = /<img[^>]+(?:data-src|src)="(https:\/\/[^"]*mlstatic[^"]+)"/g;
+
+  let titles: string[] = [];
+  for (const re of titleRes) {
+    titles = [...html.matchAll(re)].map((m) => decodeEntities(m[1].trim())).filter(Boolean);
+    if (titles.length > 0) break;
+  }
+
+  let prices: number[] = [];
+  for (const re of priceRes) {
+    const matches = [...html.matchAll(re)];
+    if (matches.length > 0) {
+      prices = matches.map((m) => parseBrl(m[1])).filter(Number.isFinite);
+      if (prices.length > 0) break;
+    }
+  }
+
   const links = [...html.matchAll(linkRe)].map((m) => m[1]);
   const images = [...html.matchAll(imgRe)].map((m) => m[1]);
 
@@ -28,38 +54,65 @@ export async function crawlMercadoLivre(query: string, max: number): Promise<Scr
     const title = titles[i];
     const price = prices[i];
     if (!title || !Number.isFinite(price) || price <= 0) continue;
-    const url = links[i] ?? `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}`;
-    const idm = url.match(/MLB-?(\d+)/);
+    const productUrl = links[i] ?? `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}`;
+    const idm = productUrl.match(/MLB-?(\d+)/);
     out.push({
       source: "mercadolivre",
       externalId: idm ? `MLB${idm[1]}` : `ml-${query}-${i}`,
       title,
-      url,
+      url: productUrl,
       image: images[i],
       price,
       query,
     });
   }
-  log.debug(`ML "${query}" -> ${out.length} itens (${html.length} bytes)`);
+  log.debug(`ML "${query}" -> ${out.length} itens (${html.length} bytes, titles=${titles.length}, prices=${prices.length})`);
   return out;
 }
 
 export async function crawlAmazon(query: string, max: number): Promise<ScrapedProduct[]> {
   const url = `https://www.amazon.com.br/s?k=${encodeURIComponent(query)}`;
   const html = await fetchHtml(url);
-  if (!html) return [];
+  if (!html || html.length < 5000) {
+    log.debug(`Amazon "${query}" bloqueado ou sem dados (${html?.length || 0} bytes)`);
+    return [];
+  }
   const out: ScrapedProduct[] = [];
-  const blocks = html.split('data-asin="').slice(1);
+
+  // Try multiple block delimiters for robustness
+  let blocks = html.split('data-asin="').slice(1);
+  if (blocks.length < 2) blocks = html.split('data-component-type="s-search-result"').slice(1);
+
   for (const b of blocks) {
     if (out.length >= max) break;
-    const asin = b.slice(0, b.indexOf('"'));
+    let asin = b.slice(0, b.indexOf('"'));
+    if (!asin || asin.length < 5) {
+      // Fallback: try to find ASIN in data attributes
+      const asinMatch = b.match(/asin["\s]*:?\s*["\']([A-Z0-9]{10})["\']?/i);
+      asin = asinMatch?.[1] || "";
+    }
     if (!asin || asin.length < 5) continue;
-    const titleM = b.match(/<span class="a-size-(?:medium|base-plus)[^"]*"[^>]*>([^<]{6,})</);
-    const priceM = b.match(/a-price-whole">([\d.]+)<\/span><span class="a-price-fraction">(\d{2})/);
-    if (!titleM || !priceM) continue;
-    const price = parseBrl(`${priceM[1]},${priceM[2]}`);
+
+    // Try multiple title patterns
+    let titleM = b.match(/<span class="a-size-(?:medium|base-plus)[^"]*"[^>]*>([^<]{6,})</);
+    if (!titleM) titleM = b.match(/<h2[^>]*>[\s\S]*?<a[^>]*>([^<]{6,})</);
+    if (!titleM) titleM = b.match(/<span[^>]*class="[^"]*title[^"]*"[^>]*>([^<]{6,})</);
+
+    // Try multiple price patterns
+    let priceM = b.match(/a-price-whole">([\d.]+)<\/span><span class="a-price-fraction">(\d{2})/);
+    if (!priceM) priceM = b.match(/data-a-price="([\d.]+)"/);
+    if (!priceM) priceM = b.match(/price["\s]*:?\s*["\']?([\d.,]+)["\']?/i);
+
+    if (!titleM) continue;
+    const price = priceM
+      ? parseBrl(typeof priceM[1] === "string" && priceM[1].includes(",") ? priceM[1] : `${priceM[1]},00`)
+      : NaN;
     if (!Number.isFinite(price) || price <= 0) continue;
-    const imgM = b.match(/<img[^>]+class="s-image"[^>]+src="(https:\/\/[^"]+)"/);
+
+    // Try multiple image patterns
+    const imgM = b.match(/<img[^>]+class="s-image"[^>]+src="(https:\/\/[^"]+)"/) ||
+                 b.match(/<img[^>]+src="(https:\/\/m\.media-amazon\.com[^"]+)"/);
+
     out.push({
       source: "amazon",
       externalId: asin,
@@ -70,7 +123,7 @@ export async function crawlAmazon(query: string, max: number): Promise<ScrapedPr
       query,
     });
   }
-  log.debug(`Amazon "${query}" -> ${out.length} itens`);
+  log.debug(`Amazon "${query}" -> ${out.length} itens (${html.length} bytes)`);
   return out;
 }
 
