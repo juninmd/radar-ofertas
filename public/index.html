@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Radar de Ofertas 🔥</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background: #0d1117; color: #e6edf3; }
+      header { padding: 20px 24px; border-bottom: 1px solid #21262d; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+      h1 { font-size: 20px; margin: 0; }
+      .muted { color: #8b949e; font-size: 13px; }
+      button { cursor: pointer; border: 1px solid #30363d; background: #161b22; color: #e6edf3; border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+      button:hover { background: #21262d; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; padding: 20px 24px; }
+      .card { border: 1px solid #21262d; border-radius: 12px; padding: 14px; background: #161b22; display: flex; flex-direction: column; gap: 8px; }
+      .title { font-weight: 600; font-size: 15px; line-height: 1.3; }
+      .price { font-size: 22px; font-weight: 700; color: #3fb950; }
+      .old { text-decoration: line-through; color: #8b949e; font-size: 14px; margin-left: 6px; }
+      .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #1f6feb33; color: #79c0ff; }
+      .src { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #8b949e; }
+      .ai { font-size: 13px; color: #d29922; font-style: italic; }
+      .row { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+      .row a { color: #58a6ff; text-decoration: none; font-size: 13px; margin-left: auto; }
+      .like.on { background: #238636; border-color: #2ea043; }
+      .dislike.on { background: #da3633; border-color: #f85149; }
+      .empty { padding: 60px 24px; text-align: center; color: #8b949e; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🔥 Radar de Ofertas</h1>
+      <span class="muted" id="sub">carregando…</span>
+      <span style="margin-left:auto"></span>
+      <button onclick="crawl()" id="crawlBtn">⟳ Rodar ciclo</button>
+      <button onclick="load()">Atualizar</button>
+    </header>
+    <div id="app" class="grid"></div>
+    <script>
+      const BRL = (n) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      const SRC = { mercadolivre: "Mercado Livre", amazon: "Amazon", magalu: "Magazine Luiza" };
+
+      async function load() {
+        const r = await fetch("/api/deals?limit=60");
+        const deals = await r.json();
+        const app = document.getElementById("app");
+        document.getElementById("sub").textContent = deals.length + " ofertas recentes";
+        if (!deals.length) { app.innerHTML = '<div class="empty">Nenhuma oferta ainda. Clique em <b>Rodar ciclo</b>.</div>'; return; }
+        app.innerHTML = deals.map(cardHtml).join("");
+      }
+
+      function cardHtml(d) {
+        const ai = d.ai_comment ? `<div class="ai">🤖 ${esc(d.ai_comment)}</div>` : "";
+        return `<div class="card">
+          <div class="src">${SRC[d.source] || d.source} · ${d.category}</div>
+          <div class="title">${esc(d.title)}</div>
+          <div><span class="price">${BRL(d.price)}</span><span class="old">${BRL(d.avg_price)}</span></div>
+          <div><span class="badge">-${d.discount_pct.toFixed(0)}% · score ${(d.score*100).toFixed(0)}</span></div>
+          ${ai}
+          <div class="row">
+            <button class="like" onclick="vote(${d.id},1,this)">👍 Curtir</button>
+            <button class="dislike" onclick="vote(${d.id},-1,this)">👎</button>
+            <a href="${d.url}" target="_blank" rel="noopener">ver produto →</a>
+          </div>
+        </div>`;
+      }
+
+      async function vote(id, v, btn) {
+        const res = await fetch("/api/feedback", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ dealId: id, vote: v }) });
+        if (res.ok) {
+          const card = btn.closest(".card");
+          card.querySelectorAll("button").forEach(b => b.classList.remove("on"));
+          btn.classList.add(v === 1 ? "on" : "on");
+          btn.classList.add(v === 1 ? "like" : "dislike");
+          btn.textContent = v === 1 ? "👍 Curtido!" : "👎 Anotado";
+        }
+      }
+
+      async function crawl() {
+        const b = document.getElementById("crawlBtn");
+        b.disabled = true; b.textContent = "⟳ rodando…";
+        try { await fetch("/api/crawl", { method: "POST" }); await load(); }
+        finally { b.disabled = false; b.textContent = "⟳ Rodar ciclo"; }
+      }
+
+      function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+      load();
+    </script>
+  </body>
+</html>

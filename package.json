@@ -1,0 +1,17 @@
+{
+  "name": "radar-ofertas",
+  "version": "1.0.0",
+  "description": "Crawler de ofertas de e-commerce (Magalu, Amazon, Mercado Livre) com histórico de preços, detecção de promoção real, notificação Telegram, feedback de recomendação e análise via LiteLLM.",
+  "type": "module",
+  "module": "src/index.ts",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "crawl": "RUN_MODE=CRAWL bun run src/index.ts",
+    "dev": "bun --watch run src/index.ts",
+    "test": "bun test"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "private": true
+}
