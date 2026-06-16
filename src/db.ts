@@ -211,12 +211,21 @@ export interface DealView {
   points: number;
 }
 
-const DEAL_SELECT = `
-  SELECT d.id, d.product_id, p.title, p.url, p.source, p.category, p.image, p.image_source,
+// Build DEAL_SELECT based on actual schema
+const dealSelectColumns = hasImageSourceCol
+  ? `d.id, d.product_id, p.title, p.url, p.source, p.category, p.image, p.image_source,
          d.price, d.avg_price, d.discount_pct, d.score, d.reasons, d.ai_comment, d.created_at,
          (SELECT MIN(price) FROM price_history WHERE product_id = p.id) min_price,
          (SELECT MAX(price) FROM price_history WHERE product_id = p.id) max_price,
-         (SELECT COUNT(*)   FROM price_history WHERE product_id = p.id) points
+         (SELECT COUNT(*)   FROM price_history WHERE product_id = p.id) points`
+  : `d.id, d.product_id, p.title, p.url, p.source, p.category, p.image, CAST('unknown' AS TEXT) as image_source,
+         d.price, d.avg_price, d.discount_pct, d.score, d.reasons, d.ai_comment, d.created_at,
+         (SELECT MIN(price) FROM price_history WHERE product_id = p.id) min_price,
+         (SELECT MAX(price) FROM price_history WHERE product_id = p.id) max_price,
+         (SELECT COUNT(*)   FROM price_history WHERE product_id = p.id) points`;
+
+const DEAL_SELECT = `
+  SELECT ${dealSelectColumns}
   FROM deals d JOIN products p ON p.id = d.product_id`;
 
 export function recentDeals(limit = 50): DealView[] {
