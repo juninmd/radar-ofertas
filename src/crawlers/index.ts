@@ -3,12 +3,19 @@ import { log } from "../log.ts";
 import type { ScrapedProduct } from "../types.ts";
 import { demoProducts } from "./demo.ts";
 import { crawlAmazon, crawlMagalu, crawlMercadoLivre } from "./sites.ts";
+import { crawlAmazonBrowser, crawlMercadoLivreBrowser } from "./browser.ts";
 
 type Crawler = (q: string, max: number) => Promise<ScrapedProduct[]>;
 const REAL: Record<string, Crawler> = {
   mercadolivre: crawlMercadoLivre,
   amazon: crawlAmazon,
   magalu: crawlMagalu,
+};
+
+// Fallback browsers for sites that block simple HTTP crawlers
+const BROWSER_CRAWLERS: Record<string, Crawler> = {
+  mercadolivre: crawlMercadoLivreBrowser,
+  amazon: crawlAmazonBrowser,
 };
 
 // tick global crescente p/ o gerador demo simular variação de preço ao longo
@@ -45,10 +52,25 @@ export async function crawlAll(): Promise<ScrapedProduct[]> {
       } catch (e) {
         log.warn(`crawl ${source}/${query} falhou`, (e as Error).message);
       }
+
+      // Fallback to browser crawling if HTTP crawl returned nothing
+      if (items.length === 0 && BROWSER_CRAWLERS[source]) {
+        try {
+          log.debug(`browser fallback ${source}/${query}...`);
+          items = await BROWSER_CRAWLERS[source](query, config.maxPerQuery);
+          if (items.length > 0) {
+            log.info(`[browser] ${source}/${query} -> ${items.length}`);
+          }
+        } catch (e) {
+          log.warn(`browser crawl ${source}/${query} falhou`, (e as Error).message);
+        }
+      }
+
+      // Final fallback to demo if both HTTP and browser failed
       if (items.length === 0 && config.allowDemoFallback) {
         items = demoProducts(query, source, tick);
         log.info(`[demo] ${source}/${query} -> ${items.length} (site bloqueou/sem dados)`);
-      } else if (items.length > 0) {
+      } else if (items.length > 0 && !items[0].title.includes("Demo")) {
         log.info(`[real] ${source}/${query} -> ${items.length}`);
       }
       all.push(...items);
