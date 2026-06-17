@@ -16,9 +16,15 @@ export async function runCrawlCycle(): Promise<CycleResult> {
   let notified = 0;
 
   for (const p of products) {
-    const { dealId, notified: didNotify } = await dealService.processScrapedProduct(p);
-    if (dealId) dealCount++;
-    if (didNotify) notified++;
+    try {
+      const { dealId, notified: didNotify } = await dealService.processScrapedProduct(p);
+      if (dealId) dealCount++;
+      if (didNotify) notified++;
+    } catch (e) {
+      // Falha de um produto (rede/IA/Telegram) não pode abortar o lote inteiro,
+      // senão as demais promoções nunca chegam ao Telegram.
+      log.error(`produto falhou (${p.source}:${p.externalId ?? "?"})`, (e as Error).message);
+    }
   }
 
   log.info(

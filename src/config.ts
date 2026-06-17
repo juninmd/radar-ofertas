@@ -52,6 +52,12 @@ export const config = {
     pollCallbacks: bool("TELEGRAM_POLL_CALLBACKS", false),
   },
 
+  // Banco do cluster (Postgres) onde as ofertas REAIS são persistidas.
+  // Vazio => persistência no cluster desligada (só SQLite local).
+  cluster: {
+    url: env("CLUSTER_DATABASE_URL"),
+  },
+
   litellm: {
     enabled: bool("LITELLM_ENABLED", true),
     base: env("LITELLM_API_BASE", "http://litellm.ai.svc.cluster.local:4000/v1"),

@@ -43,17 +43,9 @@ describe("evaluate (detecção de oferta)", () => {
     expect(r.score).toBeGreaterThan(0.9);
   });
 
-  test("preço-de anunciado dispara oferta já no 1º ciclo (sem histórico)", () => {
-    // histórico insuficiente (count=1) mas listPrice 200 vs preço 140 = -30%
-    const r = evaluate(140, stats(140, 0, 1), "Monitor Gamer 144Hz", "perifericos", 200);
-    expect(r.isDeal).toBe(true);
-    expect(r.discountPct).toBeCloseTo(30, 0);
-    expect(r.avg).toBe(200);
-    expect(r.reasons.join(" ")).toContain("preço-de=200");
-  });
-
-  test("listPrice <= preço é ignorado (sem desconto fabricado)", () => {
-    const r = evaluate(140, stats(140, 0, 1), "Monitor", "perifericos", 130);
+  test("oferta real exige histórico: sem leituras suficientes não dispara", () => {
+    // count=1: mesmo que o site anuncie desconto, sem histórico real não é oferta.
+    const r = evaluate(140, stats(140, 0, 1), "Monitor Gamer 144Hz", "perifericos");
     expect(r.isDeal).toBe(false);
     expect(r.reasons).toContain("historico-insuficiente");
   });

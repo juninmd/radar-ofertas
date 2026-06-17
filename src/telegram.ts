@@ -88,6 +88,31 @@ function keyboard(dealId: number) {
   };
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Envia ao Telegram respeitando o rate-limit: no 429, espera `retry_after`
+// e tenta de novo (até 2x). Sem isso, rajadas de ofertas tomam 429 e somem.
+async function sendTelegram(
+  base: string,
+  endpoint: string,
+  payload: Record<string, unknown>,
+): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${base}/${endpoint}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (res.status !== 429 || attempt >= 2) return res;
+    const body = (await res.clone().json().catch(() => null)) as
+      | { parameters?: { retry_after?: number } }
+      | null;
+    const wait = (body?.parameters?.retry_after ?? 1) * 1000 + 500;
+    log.warn(`Telegram 429; aguardando ${wait}ms e repetindo`);
+    await sleep(wait);
+  }
+}
+
 export async function notifyDeal(d: DealView): Promise<boolean> {
   const caption = buildCaption(d);
   if (!config.telegram.enabled) {
@@ -108,23 +133,15 @@ export async function notifyDeal(d: DealView): Promise<boolean> {
   payload.reply_markup = keyboard(d.id);
 
   try {
-    let res = await fetch(`${base}/${endpoint}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    let res = await sendTelegram(base, endpoint, payload);
     // se o sendPhoto falhar (imagem inacessível), faz fallback p/ texto
     if (!res.ok && hasImg) {
       log.warn(`sendPhoto falhou (${res.status}); fallback texto`);
-      res = await fetch(`${base}/sendMessage`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          chat_id: config.telegram.chatId,
-          text: caption,
-          parse_mode: "HTML",
-          reply_markup: keyboard(d.id),
-        }),
+      res = await sendTelegram(base, "sendMessage", {
+        chat_id: config.telegram.chatId,
+        text: caption,
+        parse_mode: "HTML",
+        reply_markup: keyboard(d.id),
       });
     }
     if (!res.ok) {

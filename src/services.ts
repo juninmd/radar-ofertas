@@ -2,6 +2,7 @@ import { PriceRepository, ProductRepository, DealRepository, FeedbackRepository 
 import { evaluate, isPriceBug } from "./deal.ts";
 import { analyzeDeal } from "./ai.ts";
 import { notifyDeal } from "./telegram.ts";
+import { saveClusterDeal } from "./clusterDb.ts";
 import { classify, keywords } from "./category.ts";
 import { log } from "./log.ts";
 import { config } from "./config.ts";
@@ -40,7 +41,7 @@ export class DealService {
     this.priceRepo.insert(productId, p.price);
 
     const stats = this.priceRepo.getStats(productId);
-    const evalResult = evaluate(p.price, stats, p.title, category, p.listPrice);
+    const evalResult = evaluate(p.price, stats, p.title, category);
 
     if (!evalResult.isDeal) return { dealId: null, notified: false };
 
@@ -63,6 +64,23 @@ export class DealService {
       reasons: evalResult.reasons.join(" | "),
       aiComment,
       notified: false,
+    });
+
+    // Persiste a oferta REAL no banco do cluster (best-effort).
+    await saveClusterDeal({
+      source: p.source,
+      externalId: p.externalId,
+      title: p.title,
+      url: p.url,
+      category,
+      image: p.image ?? null,
+      price: evalResult.price,
+      avg: evalResult.avg,
+      discountPct: evalResult.discountPct,
+      zscore: evalResult.zscore,
+      score: evalResult.score,
+      reasons: evalResult.reasons.join(" | "),
+      aiComment,
     });
 
     let notified = false;
