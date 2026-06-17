@@ -28,7 +28,7 @@ export const config = {
   maxPerQuery: num("MAX_PER_QUERY", 8),
   // NOTE: ML e Amazon têm anti-bot agressivo. Browser automation é instável em containers.
   // Usando apenas Magalu que tem API pública confiável com imagens reais.
-  sources: env("CRAWL_SOURCES", "magalu")
+  sources: env("CRAWL_SOURCES", "mercadolivre,amazon,magalu")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
