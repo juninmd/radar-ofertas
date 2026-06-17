@@ -1,20 +1,23 @@
 FROM oven/bun:1.3-debian AS deps
 WORKDIR /app
 COPY package.json ./
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 RUN bun install --production
 
 FROM oven/bun:1.3-debian AS runtime
 WORKDIR /app
 
-# Minimal system dependencies (no Playwright needed - using Magalu JSON API only)
+# Install system Chromium and certificates
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    chromium \
     && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production \
     RUN_MODE=SERVER \
     PORT=3005 \
-    DB_PATH=/data/radar.sqlite
+    DB_PATH=/data/radar.sqlite \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY src ./src

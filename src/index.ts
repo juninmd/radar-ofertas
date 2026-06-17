@@ -12,7 +12,9 @@ async function main() {
   if (config.runMode === "CRAWL") {
     const r = await runCrawlCycle();
     log.info(`CRAWL concluído: ${JSON.stringify(r)}`);
-    return;
+    const { closeBrowser } = await import("./crawlers/browser.ts");
+    await closeBrowser();
+    process.exit(0);
   }
 
   // SERVER: sobe a API/dashboard e agenda ciclos internos (opcional)

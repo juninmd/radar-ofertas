@@ -16,7 +16,7 @@ async function getBrowser(): Promise<Browser | null> {
   if (!browserInstance) {
     try {
       const isHeadless = process.env.HEADLESS !== "false";
-      browserInstance = (await puppeteerExtra.launch({
+      const launchOptions: any = {
         headless: isHeadless,
         defaultViewport: {
           width: 1200,
@@ -31,7 +31,11 @@ async function getBrowser(): Promise<Browser | null> {
           "--disable-dev-shm-usage",
           "--disable-gpu",
         ],
-      })) as any;
+      };
+      if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+      }
+      browserInstance = (await puppeteerExtra.launch(launchOptions)) as any;
       log.info("Browser (Puppeteer Stealth) launched successfully");
     } catch (e) {
       log.warn(`Browser launch failed: ${(e as Error).message}`);
