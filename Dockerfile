@@ -1,7 +1,8 @@
 FROM oven/bun:1.3-debian AS deps
 WORKDIR /app
 COPY package.json ./
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_SKIP_DOWNLOAD=true
 RUN bun install --production
 
 FROM oven/bun:1.3-debian AS runtime
