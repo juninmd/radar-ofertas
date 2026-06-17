@@ -1,603 +1,973 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Radar de Ofertas 🔥</title>
+    <title>Radar de Ofertas 🔥 Enterprise</title>
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
-      :root { color-scheme: dark; }
-      * { box-sizing: border-box; }
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background: #0d1117; color: #e6edf3; }
+      :root {
+        --bg-main: #0a0c10;
+        --bg-card: #12151c;
+        --bg-card-hover: #1a1e28;
+        --border-main: #262c36;
+        --text-primary: #f0f6fc;
+        --text-secondary: #8b949e;
+        --accent-primary: #3fb950;
+        --accent-secondary: #58a6ff;
+        --accent-danger: #f85149;
+        --accent-warning: #d29922;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
 
+      html.light {
+        --bg-main: #f6f8fa;
+        --bg-card: #ffffff;
+        --bg-card-hover: #f3f4f6;
+        --border-main: #d0d7de;
+        --text-primary: #1f2328;
+        --text-secondary: #656d76;
+        --accent-primary: #1a7f37;
+        --accent-secondary: #0969da;
+        --accent-danger: #cf222e;
+        --accent-warning: #9a6700;
+      }
+
+      * { box-sizing: border-box; }
+      
+      body {
+        font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+        margin: 0;
+        background: var(--bg-main);
+        color: var(--text-primary);
+        line-height: 1.5;
+        overflow-x: hidden;
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: var(--bg-main); }
+      ::-webkit-scrollbar-thumb { background: var(--border-main); border-radius: 10px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+      /* Header & Navigation */
       header {
-        padding: 20px 24px;
-        border-bottom: 2px solid #21262d;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(10, 12, 16, 0.8);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border-main);
+        padding: 16px 32px;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        transition: background-color 0.3s ease;
+      }
+      
+      html.light header { background: rgba(255, 255, 255, 0.8); }
+
+      .logo {
         display: flex;
         align-items: center;
         gap: 12px;
-        flex-wrap: wrap;
-        background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
       }
-      h1 { font-size: 24px; margin: 0; font-weight: 700; }
-      .muted { color: #8b949e; font-size: 13px; }
+
+      .stats-bar {
+        display: flex;
+        gap: 16px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        padding: 4px 12px;
+        background: rgba(128, 128, 128, 0.05);
+        border-radius: 99px;
+        border: 1px solid var(--border-main);
+      }
+
+      .header-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 12px;
+      }
 
       button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
         cursor: pointer;
-        border: 1px solid #30363d;
-        background: #161b22;
-        color: #e6edf3;
-        border-radius: 8px;
-        padding: 10px 14px;
+        border: 1px solid var(--border-main);
+        background: var(--bg-card);
+        color: var(--text-primary);
+        border-radius: 10px;
+        padding: 8px 16px;
         font-size: 14px;
-        font-weight: 500;
-        transition: all 0.2s;
+        font-weight: 600;
+        transition: var(--transition);
       }
-      button:hover { background: #21262d; border-color: #444c56; }
-      button:active { transform: scale(0.98); }
-      button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+      button:hover {
+        background: var(--bg-card-hover);
+        border-color: var(--text-secondary);
+        transform: translateY(-1px);
+      }
+
+      button.primary {
+        background: var(--accent-secondary);
+        border-color: var(--accent-secondary);
+        color: white;
+      }
+
+      button.primary:hover {
+        filter: brightness(1.1);
+        border-color: var(--accent-secondary);
+      }
+
+      /* Main Grid */
+      main {
+        padding: 32px;
+        max-width: 1600px;
+        margin: 0 auto;
+      }
+
+      .filters {
+        margin-bottom: 24px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
 
       .grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-        gap: 16px;
-        padding: 24px 24px;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 24px;
       }
 
+      /* Skeleton Loader */
+      .skeleton-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-main);
+        border-radius: 20px;
+        height: 480px;
+        padding: 0;
+        overflow: hidden;
+      }
+      .skeleton-img { height: 220px; background: var(--bg-card-hover); animation: pulse 1.5s infinite; }
+      .skeleton-line { height: 16px; background: var(--bg-card-hover); margin: 20px; border-radius: 8px; animation: pulse 1.5s infinite; }
+      .skeleton-line.short { width: 50%; }
+      @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
+      /* Card Styling */
       .card {
-        border: 1px solid #21262d;
-        border-radius: 12px;
-        padding: 16px;
-        background: #161b22;
+        background: var(--bg-card);
+        border: 1px solid var(--border-main);
+        border-radius: 20px;
+        padding: 0;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        transition: all 0.2s;
+        transition: var(--transition);
+        position: relative;
+      }
+
+      .card:hover {
+        transform: translateY(-4px) scale(1.01);
+        border-color: var(--accent-secondary);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      }
+
+      .card-image-container {
+        width: 100%;
+        height: 220px;
+        background: white;
+        padding: 20px;
         position: relative;
         overflow: hidden;
       }
-      .card:hover {
-        border-color: #30363d;
-        background: #1c2128;
-        transform: translateY(-2px);
+
+      .card-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        transition: var(--transition);
+        opacity: 0;
+      }
+      .card-image.loaded { opacity: 1; }
+
+      .card:hover .card-image {
+        transform: scale(1.05);
       }
 
-      .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 8px;
-      }
-
-      .badge-source {
-        display: inline-block;
-        font-size: 11px;
-        font-weight: 700;
-        padding: 6px 10px;
-        border-radius: 6px;
+      .source-badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        white-space: nowrap;
+        z-index: 10;
+        backdrop-filter: blur(8px);
       }
 
-      .badge-magalu { background: #1f6feb33; color: #79c0ff; border: 1px solid #1f6feb; }
-      .badge-amazon { background: #da680433; color: #ffa657; border: 1px solid #da6804; }
-      .badge-mercadolivre { background: #d29922; color: #161b22; border: 1px solid #d29922; }
+      .source-mercadolivre { background: rgba(255, 230, 0, 0.9); color: #000; }
+      .source-amazon { background: rgba(255, 153, 0, 0.9); color: #000; }
+      .source-magalu { background: rgba(0, 134, 255, 0.9); color: #fff; }
 
-      .thumb {
-        width: 100%;
-        height: 180px;
-        object-fit: contain;
-        background: #0d1117;
-        border-radius: 8px;
-        border: 1px solid #21262d;
+      .card-content {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        flex-grow: 1;
       }
 
-      .title {
+      .card-category {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--accent-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .card-title {
+        font-size: 16px;
         font-weight: 600;
-        font-size: 15px;
         line-height: 1.4;
-        color: #e6edf3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        height: 2.8em;
       }
 
-      .category {
-        font-size: 12px;
-        color: #8b949e;
-        text-transform: capitalize;
-      }
-
-      .price-section {
+      .price-container {
         display: flex;
         align-items: baseline;
         gap: 8px;
-        padding: 8px 0;
-        border-top: 1px solid #21262d;
-        border-bottom: 1px solid #21262d;
+        margin-top: 4px;
       }
 
-      .price {
+      .price-now {
         font-size: 24px;
-        font-weight: 700;
-        color: #3fb950;
+        font-weight: 800;
+        color: var(--accent-primary);
       }
 
-      .old {
+      .price-old {
+        font-size: 14px;
+        color: var(--text-secondary);
         text-decoration: line-through;
-        color: #8b949e;
-        font-size: 13px;
       }
 
-      .discount {
+      .discount-tag {
+        background: rgba(248, 81, 73, 0.1);
+        color: var(--accent-danger);
+        padding: 2px 8px;
+        border-radius: 6px;
         font-size: 12px;
-        font-weight: 600;
-        color: #f85149;
+        font-weight: 700;
         margin-left: auto;
       }
 
-      .badges-info {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-        font-size: 11px;
-      }
-
-      .badge {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 4px;
-        background: #30363d;
-        color: #8b949e;
-      }
-
-      .lowest {
-        background: #2ea04333;
-        color: #3fb950;
-        font-weight: 700;
-      }
-
-      .spark {
-        font-family: monospace;
-        letter-spacing: 2px;
-        color: #3fb950;
-        font-size: 13px;
-      }
-
-      .range {
+      .installment {
         font-size: 12px;
-        color: #8b949e;
+        color: var(--text-secondary);
       }
 
-      .ai {
-        font-size: 12px;
-        color: #d29922;
-        font-style: italic;
-        padding: 8px;
-        background: #d2992233;
-        border-radius: 6px;
-        border-left: 3px solid #d29922;
-      }
-
-      .row {
+      .card-badges {
         display: flex;
-        gap: 6px;
-        align-items: center;
-        margin-top: 8px;
-        flex-wrap: wrap;
-      }
-
-      .row button {
-        flex: 1;
-        min-width: 60px;
-        padding: 8px 10px;
-        font-size: 12px;
-      }
-
-      .row a {
-        color: #58a6ff;
-        text-decoration: none;
-        font-size: 13px;
-        font-weight: 600;
-        padding: 8px 12px;
-        border: 1px solid #30363d;
-        border-radius: 6px;
-        transition: all 0.2s;
-      }
-
-      .row a:hover {
-        color: #79c0ff;
-        border-color: #58a6ff;
-        background: #1f6feb11;
-      }
-
-      .like { background: #238636; border-color: #2ea043; color: white; }
-      .like:hover { background: #26843b; }
-      .like.on { background: #1f6feb; border-color: #79c0ff; }
-
-      .dislike { background: #da3633; border-color: #f85149; color: white; }
-      .dislike:hover { background: #da3633; }
-      .dislike.on { background: #d1242f; border-color: #f85149; }
-
-      .card.price-bug {
-        border-color: #f85149;
-        background: #2d1416;
-        box-shadow: 0 0 0 1px #f85149 inset, 0 0 18px #f8514955;
-      }
-      .card.price-bug:hover { border-color: #ff7b72; background: #3a181b; }
-      .bug-banner {
-        display: flex;
-        align-items: center;
         gap: 8px;
-        background: #f8514922;
-        color: #ff7b72;
-        border: 1px solid #f85149;
-        border-radius: 8px;
-        padding: 8px 10px;
+        flex-wrap: wrap;
+      }
+
+      .mini-badge {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 4px 8px;
+        background: rgba(128, 128, 128, 0.1);
+        border-radius: 6px;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .mini-badge.success { color: var(--accent-primary); background: rgba(63, 185, 80, 0.1); }
+      .mini-badge.danger { color: var(--accent-danger); background: rgba(248, 81, 73, 0.1); }
+
+      .ai-advice {
+        background: rgba(210, 153, 34, 0.05);
+        border-left: 2px solid var(--accent-warning);
+        padding: 8px 12px;
+        border-radius: 0 8px 8px 0;
         font-size: 12px;
-        font-weight: 700;
-      }
-      .card.price-bug .price { color: #ff7b72; }
-
-      .empty {
-        padding: 80px 24px;
-        text-align: center;
-        color: #8b949e;
+        color: var(--accent-warning);
+        font-style: italic;
       }
 
-      .modal {
-        display: none;
+      .card-actions {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 8px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-main);
+      }
+
+      .btn-icon {
+        padding: 8px;
+        border-radius: 8px;
+      }
+
+      .btn-vote.active.like { background: var(--accent-primary); color: white; border-color: var(--accent-primary); }
+      .btn-vote.active.dislike { background: var(--accent-danger); color: white; border-color: var(--accent-danger); }
+
+      /* Bug Style */
+      .card.price-bug {
+        border-color: var(--accent-danger);
+      }
+      html.dark .card.price-bug { background: linear-gradient(to bottom, #1a1011, #12151c); }
+      html.light .card.price-bug { background: linear-gradient(to bottom, #fff0f0, #ffffff); }
+      
+      .bug-indicator {
+        position: absolute;
+        top: 0; right: 0;
+        background: var(--accent-danger);
+        color: white;
+        font-size: 10px;
+        font-weight: 800;
+        padding: 4px 12px;
+        border-radius: 0 0 0 12px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        z-index: 20;
+      }
+
+      /* Modal Styling */
+      .modal-overlay {
         position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.7);
-        z-index: 1000;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
+        z-index: 100;
+        display: none;
         align-items: center;
         justify-content: center;
-        backdrop-filter: blur(4px);
-      }
-      .modal.open { display: flex; }
-
-      .modal-content {
-        background: #161b22;
-        border: 1px solid #21262d;
-        border-radius: 12px;
         padding: 24px;
-        max-width: 800px;
-        width: 90%;
-        max-height: 80vh;
-        overflow-y: auto;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .modal-overlay.open {
+        display: flex;
+        opacity: 1;
+      }
+
+      .modal-container {
+        background: var(--bg-card);
+        border: 1px solid var(--border-main);
+        border-radius: 24px;
+        width: 100%;
+        max-width: 900px;
+        max-height: 90vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+      }
+
+      .modal-overlay.open .modal-container {
+        transform: translateY(0);
       }
 
       .modal-header {
+        padding: 24px;
+        border-bottom: 1px solid var(--border-main);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid #21262d;
-      }
-      .modal-header h2 { margin: 0; font-size: 18px; }
-
-      .modal-close {
-        background: none;
-        border: none;
-        color: #8b949e;
-        cursor: pointer;
-        font-size: 28px;
-        padding: 0;
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .modal-close:hover { color: #e6edf3; }
-
-      .chart-container {
-        width: 100%;
-        height: 300px;
-        margin: 16px 0;
-        border: 1px solid #21262d;
-        border-radius: 8px;
-        padding: 8px;
-        background: #0d1117;
       }
 
-      .price-history {
-        margin: 20px 0;
-        padding: 12px;
-        background: #0d1117;
-        border-radius: 8px;
-        border: 1px solid #21262d;
-        max-height: 200px;
+      .modal-body {
+        padding: 24px;
         overflow-y: auto;
-      }
-
-      .price-point {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0;
-        border-bottom: 1px solid #21262d;
-        font-size: 12px;
+        flex-direction: column;
+        gap: 24px;
       }
 
-      .price-point:last-child {
-        border-bottom: none;
-      }
-
-      .price-value {
-        font-weight: 600;
-        color: #3fb950;
-      }
-
-      .price-date {
-        color: #8b949e;
-        font-family: monospace;
-      }
-
-      .chart-stats {
+      .modal-title { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 700px; }
+      
+      .modal-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+      }
+
+      @media (max-width: 768px) {
+        .modal-grid { grid-template-columns: 1fr; }
+        header { padding: 12px; gap: 12px; flex-wrap: wrap; }
+        .stats-bar { display: none; }
+        .header-actions { width: 100%; justify-content: space-between; }
+      }
+
+      .chart-wrapper {
+        background: var(--bg-main);
+        border: 1px solid var(--border-main);
+        border-radius: 16px;
+        padding: 16px;
+        height: 320px;
+      }
+
+      .history-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 12px;
-        margin: 16px 0;
+      }
+
+      .history-stat-box {
+        background: rgba(128, 128, 128, 0.05);
+        border: 1px solid var(--border-main);
+        padding: 16px;
+        border-radius: 16px;
+        text-align: center;
+      }
+
+      .history-stat-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+      .history-stat-value { font-size: 18px; font-weight: 800; color: var(--accent-primary); }
+
+      .history-table-wrapper {
+        border: 1px solid var(--border-main);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
         font-size: 13px;
       }
 
-      .stat-box {
-        border: 1px solid #21262d;
-        border-radius: 8px;
+      th {
+        background: rgba(128, 128, 128, 0.05);
+        text-align: left;
         padding: 12px;
-        background: #0d1117;
+        color: var(--text-secondary);
+        font-weight: 600;
+        border-bottom: 1px solid var(--border-main);
       }
 
-      .stat-label { color: #8b949e; margin-bottom: 6px; font-size: 11px; font-weight: 600; }
-      .stat-value { font-size: 16px; font-weight: 700; color: #3fb950; }
+      td {
+        padding: 12px;
+        border-bottom: 1px solid var(--border-main);
+      }
+
+      tr:last-child td { border-bottom: none; }
+
+      /* Animations */
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .card { animation: fadeInUp 0.5s ease backwards; }
+
+      .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        color: var(--text-secondary);
+      }
+
+      /* Notification Container */
+      .toast-container {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 200;
+      }
+
+      .toast {
+        background: var(--bg-card);
+        border: 1px solid var(--border-main);
+        padding: 12px 24px;
+        border-radius: 12px;
+        box-shadow: var(--shadow-lg);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transform: translateX(120%);
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+
+      .toast.show { transform: translateX(0); }
+
+      .filter-btn.active {
+        background: var(--accent-secondary);
+        border-color: var(--accent-secondary);
+        color: white;
+      }
+
+      /* System Metrics Banner */
+      .sys-metrics {
+        display: flex;
+        gap: 16px;
+        padding: 12px 24px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-main);
+        border-radius: 12px;
+        margin-bottom: 24px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        align-items: center;
+      }
+      .sys-metrics b { color: var(--text-primary); margin-left: 4px; }
+      
+      .scroll-top {
+        position: fixed;
+        bottom: 24px;
+        left: 24px;
+        background: var(--accent-secondary);
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        transition: all 0.3s;
+        z-index: 90;
+        border: none;
+      }
+      .scroll-top.visible { opacity: 1; }
     </style>
   </head>
   <body>
     <header>
-      <h1>🔥 Radar de Ofertas</h1>
-      <span class="muted" id="sub">carregando…</span>
-      <span style="margin-left:auto"></span>
-      <button onclick="crawl()" id="crawlBtn">⟳ Rodar ciclo</button>
-      <button onclick="load()">↻ Atualizar</button>
+      <div class="logo">
+        <i data-lucide="flame" style="color: #ff4d00;"></i>
+        Radar PRO
+      </div>
+      <div class="stats-bar">
+        <span id="stat-count">-- ofertas</span>
+        <span style="opacity: 0.3;">|</span>
+        <span id="stat-time">Carregando...</span>
+      </div>
+      <div class="header-actions">
+        <button onclick="toggleTheme()" class="btn-icon" title="Alternar Tema">
+          <i data-lucide="moon" id="theme-icon" size="18"></i>
+        </button>
+        <button onclick="crawlCycle()" id="btn-crawl">
+          <i data-lucide="refresh-cw" size="16"></i>
+          <span>Rodar Ciclo</span>
+        </button>
+        <button onclick="refreshData()" class="primary">
+          <i data-lucide="zap" size="16"></i>
+          <span>Atualizar</span>
+        </button>
+      </div>
     </header>
-    <div id="app" class="grid"></div>
-    <div id="chartModal" class="modal">
-      <div class="modal-content">
+
+    <main>
+      <div class="sys-metrics" id="sys-metrics">
+        <i data-lucide="server" size="16"></i>
+        <span>Memória: <b id="m-mem">--</b></span>
+        <span>Uptime: <b id="m-up">--</b></span>
+        <span style="margin-left:auto; display:flex; align-items:center; gap:6px;">
+          <span style="width:8px; height:8px; border-radius:50%; background:var(--accent-primary); display:inline-block;"></span>
+          Status: <b>Online</b>
+        </span>
+      </div>
+
+      <div class="filters">
+        <button onclick="filterSource('all')" class="filter-btn active" data-source="all">Todas</button>
+        <button onclick="filterSource('mercadolivre')" class="filter-btn" data-source="mercadolivre">Mercado Livre</button>
+        <button onclick="filterSource('amazon')" class="filter-btn" data-source="amazon">Amazon</button>
+        <button onclick="filterSource('magalu')" class="filter-btn" data-source="magalu">Magalu</button>
+        
+        <div style="margin-left: auto; display: flex; gap: 12px; align-items: center;">
+          <div style="position: relative;">
+            <i data-lucide="search" size="16" style="position: absolute; left: 12px; top: 10px; color: var(--text-secondary);"></i>
+            <input type="text" id="search-input" placeholder="Buscar ofertas..." 
+                   style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 10px; padding: 8px 16px 8px 36px; color: var(--text-primary); outline: none; width: 240px;"
+                   oninput="handleSearch()">
+          </div>
+        </div>
+      </div>
+
+      <div id="offers-grid" class="grid">
+        <!-- Skeleton Loaders -->
+        ${Array(8).fill('').map(() => `
+          <div class="skeleton-card">
+            <div class="skeleton-img"></div>
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+        `).join('')}
+      </div>
+    </main>
+
+    <button class="scroll-top" onclick="window.scrollTo({top:0, behavior:'smooth'})" id="scrollTopBtn">
+      <i data-lucide="arrow-up" size="20"></i>
+    </button>
+
+    <!-- Chart Modal -->
+    <div id="modal-chart" class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal-container" onclick="event.stopPropagation()">
         <div class="modal-header">
-          <h2 id="chartTitle">Histórico de Preços</h2>
-          <button class="modal-close" onclick="closeChart()">×</button>
+          <div class="modal-title" id="m-title">Histórico de Preços</div>
+          <button onclick="closeModal()" class="btn-icon">
+            <i data-lucide="x" size="24"></i>
+          </button>
         </div>
-        <div class="chart-container">
-          <canvas id="priceChart"></canvas>
+        <div class="modal-body">
+          <div class="modal-grid">
+            <div class="chart-wrapper">
+              <canvas id="main-chart"></canvas>
+            </div>
+            <div class="history-side">
+              <div class="history-stats" id="m-stats"></div>
+              <div style="margin-top: 24px;">
+                <h4 style="margin-bottom: 12px; font-size: 14px;">Análise AI Pro</h4>
+                <div class="ai-advice" id="m-ai" style="font-size: 13px;"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <h4 style="margin-bottom: 12px; font-size: 14px;">Registros Recentes</h4>
+            <div class="history-table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data da Captura</th>
+                    <th>Preço</th>
+                    <th>Variação</th>
+                  </tr>
+                </thead>
+                <tbody id="m-table-body"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
-        <div id="priceHistory" class="price-history"></div>
-        <div class="chart-stats" id="chartStats"></div>
       </div>
     </div>
+
+    <div class="toast-container" id="toast-container"></div>
+
     <script>
-      const BRL = (n) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-      const SRC = {
-        mercadolivre: { name: "Mercado Livre", badge: "badge-mercadolivre" },
-        amazon: { name: "Amazon", badge: "badge-amazon" },
-        magalu: { name: "Magazine Luiza", badge: "badge-magalu" }
+      let allDeals = [];
+      let currentSource = 'all';
+      let priceChart = null;
+      let isDark = localStorage.getItem('theme') !== 'light';
+
+      const fmtBRL = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const timeAgo = (date) => {
+        const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+        let interval = seconds / 31536000;
+        if (interval > 1) return Math.floor(interval) + " anos atrás";
+        interval = seconds / 2592000;
+        if (interval > 1) return Math.floor(interval) + " meses atrás";
+        interval = seconds / 86400;
+        if (interval > 1) return Math.floor(interval) + " dias atrás";
+        interval = seconds / 3600;
+        if (interval > 1) return Math.floor(interval) + "h atrás";
+        interval = seconds / 60;
+        if (interval > 1) return Math.floor(interval) + "m atrás";
+        return Math.floor(seconds) + "s atrás";
       };
 
-      // Gera URL real do produto baseado na source
-      function getRealProductUrl(deal) {
-        const url = deal.url;
-        if (url && url.includes("mercadolivre")) return url;
-        if (url && url.includes("amazon")) return url;
-        if (url && url.includes("magazineluiza")) return url;
-        // Fallback para URL padrão se disponível
-        return deal.url || "#";
+      function toggleTheme() {
+        isDark = !isDark;
+        document.documentElement.classList.toggle('light', !isDark);
+        document.documentElement.classList.toggle('dark', isDark);
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        document.getElementById('theme-icon').setAttribute('data-lucide', isDark ? 'moon' : 'sun');
+        lucide.createIcons();
+        if (priceChart) initChart(priceChart.data.labels.map((l,i) => ({ date: l, price: priceChart.data.datasets[0].data[i] })));
       }
 
-      async function load() {
-        const r = await fetch("/api/deals?limit=60");
-        const deals = await r.json();
-        const app = document.getElementById("app");
-        document.getElementById("sub").textContent = deals.length + " ofertas recentes";
-        if (!deals.length) {
-          app.innerHTML = '<div class="empty">Nenhuma oferta ainda.<br>Clique em <b>⟳ Rodar ciclo</b> para começar.</div>';
-          return;
-        }
-        app.innerHTML = deals.map(cardHtml).join("");
-      }
+      if (!isDark) toggleTheme(); // apply initial if light
 
-      const BARS = "▁▂▃▄▅▆▇█";
-      function spark(s) {
-        if (!s || s.length < 2) return "";
-        const mn = Math.min(...s), mx = Math.max(...s), r = (mx - mn) || 1;
-        return s.map(v => BARS[Math.min(7, Math.floor((v - mn) / r * 7))]).join("");
-      }
-
-      function cardHtml(d) {
-        const srcInfo = SRC[d.source] || { name: d.source, badge: "" };
-        const badgeClass = srcInfo.badge || "badge";
-        const ai = d.ai_comment ? `<div class="ai">🤖 ${esc(d.ai_comment)}</div>` : "";
-        const img = d.image ? `<img class="thumb" src="${d.image}" loading="lazy" onerror="this.style.display='none'">` : "";
-        const lowest = (d.min_price && d.price <= d.min_price + 0.001) ? `<span class="badge lowest">🏆 Menor preço</span>` : "";
-        const sp = spark(d.series);
-        const productUrl = getRealProductUrl(d);
-        const bugBanner = d.priceBug
-          ? `<div class="bug-banner">⚠️ Possível erro de preço — confira no site antes de comprar</div>`
-          : "";
-
-        return `<div class="card${d.priceBug ? " price-bug" : ""}">
-          <div class="card-header">
-            <span class="badge-source ${badgeClass}">${srcInfo.name}</span>
-          </div>
-          ${bugBanner}
-          ${img}
-          <div class="category">${d.category}</div>
-          <div class="title">${esc(d.title)}</div>
-          <div class="price-section">
-            <span class="price">${BRL(d.price)}</span>
-            <span class="old">${BRL(d.avg_price)}</span>
-            <span class="discount">-${d.discount_pct.toFixed(0)}%</span>
-          </div>
-          <div class="badges-info">
-            ${lowest}
-            <span class="badge">Score ${(d.score*100).toFixed(0)}</span>
-            <span class="badge">📊 ${d.points} pontos</span>
-          </div>
-          <div class="range">Min ${BRL(d.min_price)} • Max ${BRL(d.max_price)}</div>
-          ${sp ? `<div class="spark">${sp}</div>` : ""}
-          ${ai}
-          <div class="row">
-            <button class="like" onclick="vote(${d.id},1,this)">👍 Curtir</button>
-            <button class="dislike" onclick="vote(${d.id},-1,this)">👎</button>
-            <button onclick="showChart(${d.id}, '${esc(d.title)}', ${JSON.stringify(d.series)})">📈 Histórico</button>
-            <a href="${productUrl}" target="_blank" rel="noopener">🔗 Ver produto</a>
-          </div>
-        </div>`;
-      }
-
-      async function vote(id, v, btn) {
-        const res = await fetch("/api/feedback", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ dealId: id, vote: v })
-        });
-        if (res.ok) {
-          const card = btn.closest(".card");
-          card.querySelectorAll(".like, .dislike").forEach(b => b.classList.remove("on"));
-          btn.classList.add("on");
-        }
-      }
-
-      async function crawl() {
-        const b = document.getElementById("crawlBtn");
-        b.disabled = true;
-        b.textContent = "⟳ rodando…";
+      async function fetchMetrics() {
         try {
-          await fetch("/api/crawl", { method: "POST" });
-          await load();
-        } finally {
-          b.disabled = false;
-          b.textContent = "⟳ Rodar ciclo";
+          const res = await fetch('/api/system/metrics');
+          const data = await res.json();
+          document.getElementById('m-mem').textContent = data.memory.rss;
+          const up = Math.floor(data.uptime / 60);
+          document.getElementById('m-up').textContent = up > 60 ? \`\${(up/60).toFixed(1)}h\` : \`\${up}m\`;
+        } catch(e) {}
+      }
+
+      async function refreshData() {
+        const grid = document.getElementById('offers-grid');
+        try {
+          const res = await fetch('/api/deals?limit=100');
+          allDeals = await res.json();
+          renderGrid();
+          updateStats();
+          fetchMetrics();
+        } catch (err) {
+          showToast('Erro ao carregar dados. API pode estar offline.', 'danger');
         }
       }
 
-      function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+      function updateStats() {
+        document.getElementById('stat-count').textContent = `${allDeals.length} ofertas processadas`;
+        document.getElementById('stat-time').textContent = `Atualizado às ${new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}`;
+      }
 
-      function showChart(id, title, series) {
-        if (!series || series.length < 2) {
-          alert("Histórico insuficiente para gráfico");
+      function renderGrid() {
+        const grid = document.getElementById('offers-grid');
+        const query = document.getElementById('search-input').value.toLowerCase();
+        
+        const filtered = allDeals.filter(d => {
+          const matchSource = currentSource === 'all' || d.source === currentSource;
+          const matchSearch = d.title.toLowerCase().includes(query) || d.category.toLowerCase().includes(query);
+          return matchSource && matchSearch;
+        });
+
+        if (filtered.length === 0) {
+          grid.innerHTML = `<div class="empty-state">Nenhuma oferta encontrada para os filtros aplicados.</div>`;
           return;
         }
-        document.getElementById("chartTitle").textContent = `Histórico: ${title}`;
-        document.getElementById("chartModal").classList.add("open");
-        drawChart(series);
-        updateChartStats(series);
-        updatePriceHistory(series);
-      }
 
-      function closeChart() {
-        document.getElementById("chartModal").classList.remove("open");
-      }
+        grid.innerHTML = filtered.map((d, idx) => `
+          <div class="card ${d.priceBug ? 'price-bug' : ''}" style="animation-delay: ${idx * 0.05}s">
+            ${d.priceBug ? `<div class="bug-indicator"><i data-lucide="alert-triangle" size="12"></i> ANOMALIA PREÇO</div>` : ''}
+            <div class="card-image-container">
+              <span class="source-badge source-${d.source}">${d.source}</span>
+              <img src="${d.image || 'https://via.placeholder.com/300?text=Sem+Imagem'}" 
+                   class="card-image" 
+                   onload="this.classList.add('loaded')"
+                   loading="lazy" 
+                   onerror="this.src='https://via.placeholder.com/300?text=Indisponível'">
+            </div>
+            <div class="card-content">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="card-category">${d.category}</div>
+                <div style="font-size:10px; color:var(--text-secondary);"><i data-lucide="clock" size="10" style="display:inline; margin-bottom:-2px;"></i> ${timeAgo(d.created_at)}</div>
+              </div>
+              <div class="card-title" title="${esc(d.title)}">${esc(d.title)}</div>
+              
+              <div class="price-container">
+                <span class="price-now">${fmtBRL(d.price)}</span>
+                ${d.price < d.avg_price ? `<span class="price-old">${fmtBRL(d.avg_price)}</span>` : ''}
+                <span class="discount-tag">-${d.discount_pct.toFixed(0)}%</span>
+              </div>
+              
+              <div class="installment">Em até 10x de ${fmtBRL(d.price / 10)} s/ juros</div>
+              
+              <div class="card-badges">
+                ${d.price <= d.min_price + 0.1 ? `<div class="mini-badge success"><i data-lucide="award" size="12"></i> MENOR PREÇO</div>` : ''}
+                <div class="mini-badge"><i data-lucide="activity" size="12"></i> Score ${(d.score*100).toFixed(0)}</div>
+                ${d.trend ? `
+                  <div class="mini-badge ${d.trend.direction === 'falling' ? 'success' : (d.trend.direction === 'rising' ? 'danger' : '')}">
+                    <i data-lucide="${d.trend.direction === 'falling' ? 'trending-down' : (d.trend.direction === 'rising' ? 'trending-up' : 'minus')}" size="12"></i>
+                    ${d.trend.direction === 'falling' ? 'QUEDA SMART' : (d.trend.direction === 'rising' ? 'ALTA' : 'ESTÁVEL')}
+                  </div>
+                ` : ''}
+              </div>
 
-      function drawChart(prices) {
-        const canvas = document.getElementById("priceChart");
-        const ctx = canvas.getContext("2d");
-        const w = canvas.offsetWidth;
-        const h = canvas.offsetHeight;
-        canvas.width = w;
-        canvas.height = h;
-
-        const mn = Math.min(...prices);
-        const mx = Math.max(...prices);
-        const range = mx - mn || 1;
-        const padding = 40;
-
-        ctx.fillStyle = "#0d1117";
-        ctx.fillRect(0, 0, w, h);
-        ctx.strokeStyle = "#21262d";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(padding, padding);
-        ctx.lineTo(padding, h - padding);
-        ctx.lineTo(w - padding, h - padding);
-        ctx.stroke();
-
-        ctx.fillStyle = "#8b949e";
-        ctx.font = "12px monospace";
-        ctx.textAlign = "right";
-        ctx.fillText(BRL(mx), padding - 10, padding + 5);
-        ctx.fillText(BRL(mn), padding - 10, h - padding + 5);
-
-        ctx.strokeStyle = "#58a6ff";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        prices.forEach((p, i) => {
-          const x = padding + (i / (prices.length - 1)) * (w - 2 * padding);
-          const y = h - padding - ((p - mn) / range) * (h - 2 * padding);
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        });
-        ctx.stroke();
-
-        ctx.fillStyle = "#3fb950";
-        prices.forEach((p, i) => {
-          const x = padding + (i / (prices.length - 1)) * (w - 2 * padding);
-          const y = h - padding - ((p - mn) / range) * (h - 2 * padding);
-          ctx.beginPath();
-          ctx.arc(x, y, 4, 0, Math.PI * 2);
-          ctx.fill();
-        });
-      }
-
-      function updatePriceHistory(prices) {
-        // Simula timestamps para cada preço (a cada 24h)
-        const now = new Date();
-        const history = prices.map((price, idx) => {
-          const date = new Date(now.getTime() - (prices.length - 1 - idx) * 24 * 60 * 60 * 1000);
-          return { price, date };
-        });
-
-        const html = history.map(h => `
-          <div class="price-point">
-            <span class="price-value">${BRL(h.price)}</span>
-            <span class="price-date">${h.date.toLocaleDateString('pt-BR')} ${h.date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</span>
+              <div class="card-actions">
+                <button onclick="window.open('${d.url}', '_blank')" class="primary" style="flex-grow: 1; justify-content: center;">
+                  <i data-lucide="shopping-cart" size="16"></i> Comprar
+                </button>
+                <button onclick="openHistory(${d.id})" class="btn-icon" title="Análise Completa">
+                  <i data-lucide="pie-chart" size="18"></i>
+                </button>
+                <div style="display: flex; gap: 4px;">
+                  <button onclick="vote(${d.id}, 1, this)" class="btn-icon btn-vote like" title="Gostei">
+                    <i data-lucide="thumbs-up" size="18"></i>
+                  </button>
+                  <button onclick="vote(${d.id}, -1, this)" class="btn-icon btn-vote dislike" title="Não gostei">
+                    <i data-lucide="thumbs-down" size="18"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         `).join('');
-
-        document.getElementById("priceHistory").innerHTML = html;
+        lucide.createIcons();
       }
 
-      function updateChartStats(prices) {
-        const mn = Math.min(...prices);
-        const mx = Math.max(...prices);
-        const avg = prices.reduce((a, b) => a + b) / prices.length;
-        const current = prices[prices.length - 1];
-        const chg = ((current - avg) / avg * 100).toFixed(1);
-        document.getElementById("chartStats").innerHTML = `
-          <div class="stat-box">
-            <div class="stat-label">Mínimo</div>
-            <div class="stat-value">${BRL(mn)}</div>
+      function filterSource(src) {
+        currentSource = src;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.source === src));
+        renderGrid();
+      }
+      function handleSearch() { renderGrid(); }
+
+      async function vote(id, val, btn) {
+        try {
+          const res = await fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ dealId: id, vote: val })
+          });
+          if (res.ok) {
+            btn.parentElement.querySelectorAll('.btn-vote').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            showToast('Feedback registrado. IA ajustada.', 'success');
+          }
+        } catch (err) { showToast('Erro ao registrar voto.', 'danger'); }
+      }
+
+      async function crawlCycle() {
+        const btn = document.getElementById('btn-crawl');
+        const icon = btn.querySelector('i');
+        btn.disabled = true;
+        icon.style.animation = 'spin 1s linear infinite';
+        btn.querySelector('span').textContent = 'Analisando Mercado...';
+        showToast('Iniciando ciclo de varredura...', 'primary');
+        try {
+          await fetch('/api/crawl', { method: 'POST' });
+          showToast('Ciclo concluído. Atualizando dashboard.', 'success');
+          refreshData();
+        } catch (err) { showToast('Erro no motor de varredura.', 'danger'); } 
+        finally {
+          btn.disabled = false;
+          icon.style.animation = '';
+          btn.querySelector('span').textContent = 'Rodar Ciclo';
+        }
+      }
+
+      function openHistory(dealId) {
+        const deal = allDeals.find(d => d.id === dealId);
+        if (!deal) return;
+
+        document.getElementById('m-title').textContent = deal.title;
+        document.getElementById('m-ai').innerHTML = deal.ai_comment ? `<i data-lucide="bot" size="14" style="display:inline; margin-bottom:-2px;"></i> ${deal.ai_comment}` : 'Nenhuma análise avançada disponível.';
+        
+        const minP = deal.min_price, maxP = deal.max_price, currentP = deal.price, avgP = deal.avg_price;
+        const drop = ((avgP - currentP) / avgP * 100).toFixed(0);
+
+        document.getElementById('m-stats').innerHTML = `
+          <div class="history-stat-box">
+            <div class="history-stat-label">Mínimo Histórico</div>
+            <div class="history-stat-value">${fmtBRL(minP)}</div>
           </div>
-          <div class="stat-box">
-            <div class="stat-label">Máximo</div>
-            <div class="stat-value">${BRL(mx)}</div>
+          <div class="history-stat-box">
+            <div class="history-stat-label">Máximo Histórico</div>
+            <div class="history-stat-value">${fmtBRL(maxP)}</div>
           </div>
-          <div class="stat-box">
-            <div class="stat-label">Média</div>
-            <div class="stat-value">${BRL(avg.toFixed(2))}</div>
+          <div class="history-stat-box">
+            <div class="history-stat-label">Média Móvel</div>
+            <div class="history-stat-value" style="color: var(--accent-secondary)">${fmtBRL(avgP)}</div>
           </div>
-          <div class="stat-box">
-            <div class="stat-label">Atual vs Média</div>
-            <div class="stat-value" style="color: ${chg < 0 ? '#3fb950' : '#f85149'}">${chg > 0 ? '+' : ''}${chg}%</div>
+          <div class="history-stat-box">
+            <div class="history-stat-label">Queda Relativa</div>
+            <div class="history-stat-value" style="color: var(--accent-danger)">${drop}%</div>
           </div>
         `;
+
+        initChart(deal.seriesDates);
+        const historyData = [...deal.seriesDates].reverse();
+        document.getElementById('m-table-body').innerHTML = historyData.map((p, i) => {
+          const prev = historyData[i+1]?.price || p.price;
+          const diff = p.price - prev;
+          const diffColor = diff < 0 ? 'var(--accent-primary)' : (diff > 0 ? 'var(--accent-danger)' : 'var(--text-secondary)');
+          const diffIcon = diff < 0 ? '↓' : (diff > 0 ? '↑' : '•');
+          return `<tr>
+              <td>${fmtDate(p.date)}</td>
+              <td style="font-weight: 700;">${fmtBRL(p.price)}</td>
+              <td style="color: ${diffColor}; font-weight: 600;">${diffIcon} ${fmtBRL(Math.abs(diff))}</td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('modal-chart').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        lucide.createIcons();
       }
 
-      window.addEventListener("click", (e) => {
-        const modal = document.getElementById("chartModal");
-        if (e.target === modal) modal.classList.remove("open");
+      function initChart(data) {
+        const ctx = document.getElementById('main-chart').getContext('2d');
+        if (priceChart) priceChart.destroy();
+        const labels = data.map(d => (d.date ? new Date(d.date).toLocaleDateString('pt-BR') : d.date));
+        const prices = data.map(d => d.price);
+        const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
+        const textColor = isDark ? '#8b949e' : '#656d76';
+
+        priceChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Preço (R$)',
+              data: prices,
+              borderColor: isDark ? '#58a6ff' : '#0969da',
+              backgroundColor: isDark ? 'rgba(88, 166, 255, 0.1)' : 'rgba(9, 105, 218, 0.1)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.4,
+              pointBackgroundColor: isDark ? '#58a6ff' : '#0969da',
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { padding: 12, displayColors: false } },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: textColor, font: { size: 10 } } },
+              y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 10 }, callback: (v) => 'R$ ' + v } }
+            }
+          }
+        });
+      }
+
+      function closeModal() {
+        document.getElementById('modal-chart').classList.remove('open');
+        document.body.style.overflow = '';
+      }
+
+      function showToast(msg, type='primary') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        const colors = { primary: 'var(--accent-secondary)', success: 'var(--accent-primary)', danger: 'var(--accent-danger)' };
+        toast.innerHTML = `<i data-lucide="check-circle" style="color: ${colors[type]};"></i> <span>${msg}</span>`;
+        container.appendChild(toast);
+        lucide.createIcons();
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
+      }
+
+      function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+      window.addEventListener('scroll', () => {
+        const btn = document.getElementById('scrollTopBtn');
+        if (window.scrollY > 300) btn.classList.add('visible');
+        else btn.classList.remove('visible');
       });
 
-      load();
+      refreshData();
+      setInterval(fetchMetrics, 10000);
+      window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+      lucide.createIcons();
     </script>
   </body>
 </html>

@@ -1,33 +1,26 @@
 import { config } from "./config.ts";
 import { log } from "./log.ts";
-import { keywords } from "./category.ts";
-import {
-  dealById,
-  feedbackByCategory,
-  imageStats,
-  insertFeedback,
-  priceSeries,
-  priceSeriesWithDates,
-  recentDeals,
-} from "./db.ts";
 import { runCrawlCycle } from "./pipeline.ts";
 import { pollCallbacks } from "./telegram.ts";
-import { isPriceBug } from "./deal.ts";
+import { DealService } from "./services.ts";
+import { globalCache } from "./cache.ts";
 
-const json = (data: unknown, status = 200) =>
+const dealService = new DealService();
+
+// Simple in-memory rate limiter
+const rateLimits = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_MAX = 100; // requests
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+
+const json = (data: unknown, status = 200, extraHeaders = {}) =>
   new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8" },
+    headers: { 
+      "content-type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+      ...extraHeaders 
+    },
   });
-
-// registra voto a partir de um deal (deriva categoria + keywords do produto)
-export function registerVote(dealId: number, vote: 1 | -1): boolean {
-  const d = dealById(dealId);
-  if (!d) return false;
-  insertFeedback(dealId, d.category, keywords(d.title).join(","), vote);
-  log.info(`feedback deal#${dealId} ${vote > 0 ? "👍" : "👎"} (${d.category})`);
-  return true;
-}
 
 const DASHBOARD = Bun.file(new URL("../public/index.html", import.meta.url));
 
@@ -36,70 +29,93 @@ export function startServer() {
     port: config.port,
     idleTimeout: 60,
     async fetch(req) {
+      const start = performance.now();
       const url = new URL(req.url);
       const { pathname } = url;
+      const ip = req.headers.get("x-forwarded-for") || server.requestIP(req)?.address || "unknown";
 
-      if (pathname === "/health") return json({ ok: true, ts: Date.now() });
+      // Rate Limiting Logic
+      const now = Date.now();
+      let rl = rateLimits.get(ip);
+      if (!rl || now > rl.resetTime) {
+        rl = { count: 0, resetTime: now + RATE_LIMIT_WINDOW };
+      }
+      rl.count++;
+      rateLimits.set(ip, rl);
 
-      if (pathname === "/" || pathname === "/index.html") {
-        return new Response(DASHBOARD, {
-          headers: { "content-type": "text/html; charset=utf-8" },
+      if (rl.count > RATE_LIMIT_MAX) {
+        log.warn(`Rate limit exceeded for IP: ${ip}`);
+        return json({ error: "Too Many Requests" }, 429);
+      }
+
+      // Handle CORS preflight
+      if (req.method === "OPTIONS") {
+        return new Response(null, {
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+          }
         });
       }
 
-      if (pathname === "/api/deals" && req.method === "GET") {
-        const limit = Number(url.searchParams.get("limit") ?? 50);
-        const deals = recentDeals(Math.min(Math.max(limit, 1), 200)).map((d) => ({
-          ...d,
-          priceBug: isPriceBug(d.discount_pct),
-          series: priceSeries(d.product_id, 24),
-          seriesDates: priceSeriesWithDates(d.product_id, 24).map(p => ({
-            price: p.price,
-            date: p.captured_at
-          })),
-        }));
-        return json(deals);
-      }
+      let response: Response;
 
-      if (pathname === "/api/stats" && req.method === "GET") {
-        return json({ feedback: feedbackByCategory() });
-      }
-
-      if (pathname === "/api/feedback" && req.method === "POST") {
-        try {
-          const body = (await req.json()) as { dealId?: number; vote?: number };
-          const vote = body.vote === -1 ? -1 : body.vote === 1 ? 1 : null;
-          if (!body.dealId || vote === null)
-            return json({ error: "dealId e vote (1|-1) obrigatórios" }, 400);
-          const ok = registerVote(body.dealId, vote);
-          return ok ? json({ ok: true }) : json({ error: "deal não encontrado" }, 404);
-        } catch {
-          return json({ error: "json inválido" }, 400);
+      try {
+        if (pathname === "/health") {
+          response = json({ ok: true, ts: Date.now() });
         }
+        else if (pathname === "/api/system/metrics") {
+          const mem = process.memoryUsage();
+          response = json({
+            uptime: process.uptime(),
+            memory: {
+              rss: Math.round(mem.rss / 1024 / 1024) + "MB",
+              heapTotal: Math.round(mem.heapTotal / 1024 / 1024) + "MB",
+              heapUsed: Math.round(mem.heapUsed / 1024 / 1024) + "MB",
+            },
+            cache: globalCache.getStats()
+          });
+        }
+        else if (pathname === "/" || pathname === "/index.html") {
+          response = new Response(DASHBOARD, {
+            headers: { "content-type": "text/html; charset=utf-8" },
+          });
+        }
+        else if (pathname === "/api/deals" && req.method === "GET") {
+          const limit = Number(url.searchParams.get("limit") ?? 50);
+          const cacheKey = `deals_${limit}`;
+          
+          let deals = globalCache.get<any[]>(cacheKey);
+          if (!deals) {
+            deals = dealService.getDashboardDeals(Math.min(Math.max(limit, 1), 200));
+            globalCache.set(cacheKey, deals, 15000); // Cache for 15 seconds
+          }
+          
+          response = json(deals);
+        }
+        else if (pathname === "/api/crawl" && req.method === "POST") {
+          const result = await runCrawlCycle();
+          globalCache.invalidate("deals_50");
+          globalCache.invalidate("deals_100");
+          response = json(result);
+        }
+        else {
+          response = new Response("not found", { status: 404 });
+        }
+      } catch (err) {
+        log.error(`API Error on ${pathname}:`, err);
+        response = json({ error: "Internal Server Error" }, 500);
       }
 
-      if (pathname === "/api/crawl" && req.method === "POST") {
-        const result = await runCrawlCycle();
-        return json(result);
-      }
-
-      if (pathname === "/api/image-stats" && req.method === "GET") {
-        return json(imageStats());
-      }
-
-      return new Response("not found", { status: 404 });
+      const duration = (performance.now() - start).toFixed(2);
+      log.info(`HTTP ${req.method} ${pathname} - ${response.status} [${duration}ms] - IP: ${ip}`);
+      
+      return response;
     },
   });
 
-  log.info(`radar-ofertas server em http://localhost:${server.port}`);
-
-  // long-poll de callbacks do Telegram (botões 👍/👎)
-  const offsetRef = { offset: 0 };
-  if (config.telegram.enabled && config.telegram.botToken) {
-    setInterval(() => {
-      void pollCallbacks((id, vote) => registerVote(id, vote), offsetRef);
-    }, 4000);
-  }
-
+  log.info(`🚀 Radar de Ofertas PRO Server via Bun em http://localhost:${server.port}`);
+  
   return server;
 }
