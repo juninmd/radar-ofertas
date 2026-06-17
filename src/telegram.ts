@@ -2,6 +2,7 @@ import { config } from "./config.ts";
 import { log } from "./log.ts";
 import { priceSeries } from "./db.ts";
 import type { DealView } from "./db.ts";
+import { isPriceBug } from "./deal.ts";
 
 const fmt = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -36,8 +37,16 @@ export function buildCaption(d: DealView): string {
   const spark = sparkline(series);
   const isLowest = d.min_price > 0 && d.price <= d.min_price + 0.001;
   const economia = d.avg_price - d.price;
+  const priceBug = isPriceBug(d.discount_pct);
 
-  const lines = [
+  const lines = priceBug
+    ? [
+        `⚠️🐞 <b>POSSÍVEL ERRO DE PREÇO</b> 🐞⚠️`,
+        `<i>Preço muito abaixo do histórico — pode ser bug de precificação. Confira antes de comprar.</i>`,
+        `🏬 ${label} · 🏷️ ${d.category}`,
+        ``,
+      ]
+    : [
     `🔥 <b>OFERTA ${heat(d.score)}</b>`,
     `🏬 ${label} · 🏷️ ${d.category}`,
     ``,

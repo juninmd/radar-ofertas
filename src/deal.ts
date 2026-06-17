@@ -2,6 +2,12 @@ import { config } from "./config.ts";
 import type { DealEval, PriceStats } from "./types.ts";
 import { affinity } from "./recommend.ts";
 
+// Detecta bug de precificação: desconto absurdo frente à média histórica
+// (ex.: PS5 anunciado por R$100). Sinaliza para tratamento visual distinto.
+export function isPriceBug(discountPct: number): boolean {
+  return discountPct >= config.priceBugDiscountPct;
+}
+
 // Avalia se o preço atual é uma oferta real frente ao histórico, e combina com
 // a afinidade de recomendação para produzir um score 0..1.
 export function evaluate(

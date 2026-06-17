@@ -3,8 +3,15 @@ import { decodeEntities, fetchHtml, parseBrl } from "./base.ts";
 import { log } from "../log.ts";
 
 // Crawlers best-effort por HTML público de busca. Sites de e-commerce têm
-// anti-bot agressivo; quando bloqueado retorna [] e o orquestrador usa o
-// fallback demo. Parsing tolerante a mudanças de markup.
+// anti-bot agressivo; quando bloqueado retorna []. Parsing tolerante a
+// mudanças de markup.
+
+// Garante URL absoluta (Magalu costuma devolver path relativo "/p/...").
+function absoluteUrl(raw: unknown, origin: string): string {
+  if (typeof raw !== "string" || !raw) return origin;
+  if (/^https?:\/\//.test(raw)) return raw;
+  return origin + (raw.startsWith("/") ? raw : `/${raw}`);
+}
 
 export async function crawlMercadoLivre(query: string, max: number): Promise<ScrapedProduct[]> {
   const url = `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}`;
@@ -167,7 +174,7 @@ function findProducts(node: unknown, acc: Omit<ScrapedProduct, "query">[] = []):
         source: "magalu",
         externalId: String(id),
         title: decodeEntities(title),
-        url: typeof o.url === "string" ? o.url : `https://www.magazineluiza.com.br/`,
+        url: absoluteUrl(o.url, "https://www.magazineluiza.com.br"),
         image: typeof img === "string" ? img : undefined,
         price: n,
         imageSource: "real",

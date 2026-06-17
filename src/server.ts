@@ -12,6 +12,7 @@ import {
 } from "./db.ts";
 import { runCrawlCycle } from "./pipeline.ts";
 import { pollCallbacks } from "./telegram.ts";
+import { isPriceBug } from "./deal.ts";
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -50,6 +51,7 @@ export function startServer() {
         const limit = Number(url.searchParams.get("limit") ?? 50);
         const deals = recentDeals(Math.min(Math.max(limit, 1), 200)).map((d) => ({
           ...d,
+          priceBug: isPriceBug(d.discount_pct),
           series: priceSeries(d.product_id, 24),
           seriesDates: priceSeriesWithDates(d.product_id, 24).map(p => ({
             price: p.price,

@@ -26,12 +26,13 @@ export const config = {
     .map((s) => s.trim())
     .filter(Boolean),
   maxPerQuery: num("MAX_PER_QUERY", 8),
-  // NOTE: ML e Amazon têm anti-bot agressivo. Browser automation é instável em containers.
-  // Usando apenas Magalu que tem API pública confiável com imagens reais.
   sources: env("CRAWL_SOURCES", "mercadolivre,amazon,magalu")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
+
+  // ciclo contínuo: coleta a cada N minutos (default 1h)
+  crawlIntervalMin: num("CRAWL_INTERVAL_MIN", 60),
 
   // detecção de oferta
   minHistoryPoints: num("MIN_HISTORY_POINTS", 3),
@@ -39,9 +40,8 @@ export const config = {
   minDiscountPct: num("MIN_DISCOUNT_PCT", 12), // ou desconto >= % sobre a média
   notifyScore: num("NOTIFY_SCORE", 0.5), // score combinado mínimo p/ notificar
 
-  // demo fallback DISABLED for user requirement: 100% real images
-  // If Magalu returns no products, it's a real issue (rate limit, network, etc)
-  allowDemoFallback: bool("ALLOW_DEMO_FALLBACK", false),
+  // bug de precificação: desconto absurdo (ex: PS5 por R$100) = erro de preço
+  priceBugDiscountPct: num("PRICE_BUG_DISCOUNT_PCT", 70),
 
   telegram: {
     enabled: bool("TELEGRAM_ENABLED", true),

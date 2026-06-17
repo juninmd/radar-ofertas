@@ -20,9 +20,9 @@ async function main() {
   // SERVER: sobe a API/dashboard e agenda ciclos internos (opcional)
   startServer();
 
-  const intervalMin = Number(process.env.CRAWL_INTERVAL_MIN ?? 0);
+  const intervalMin = config.crawlIntervalMin;
   if (intervalMin > 0) {
-    log.info(`agendando ciclo interno a cada ${intervalMin}min`);
+    log.info(`ciclo contínuo agendado a cada ${intervalMin}min`);
     const tick = async () => {
       try {
         await runCrawlCycle();

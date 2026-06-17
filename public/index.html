@@ -216,6 +216,26 @@
       .dislike:hover { background: #da3633; }
       .dislike.on { background: #d1242f; border-color: #f85149; }
 
+      .card.price-bug {
+        border-color: #f85149;
+        background: #2d1416;
+        box-shadow: 0 0 0 1px #f85149 inset, 0 0 18px #f8514955;
+      }
+      .card.price-bug:hover { border-color: #ff7b72; background: #3a181b; }
+      .bug-banner {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #f8514922;
+        color: #ff7b72;
+        border: 1px solid #f85149;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .card.price-bug .price { color: #ff7b72; }
+
       .empty {
         padding: 80px 24px;
         text-align: center;
@@ -400,11 +420,15 @@
         const lowest = (d.min_price && d.price <= d.min_price + 0.001) ? `<span class="badge lowest">🏆 Menor preço</span>` : "";
         const sp = spark(d.series);
         const productUrl = getRealProductUrl(d);
+        const bugBanner = d.priceBug
+          ? `<div class="bug-banner">⚠️ Possível erro de preço — confira no site antes de comprar</div>`
+          : "";
 
-        return `<div class="card">
+        return `<div class="card${d.priceBug ? " price-bug" : ""}">
           <div class="card-header">
             <span class="badge-source ${badgeClass}">${srcInfo.name}</span>
           </div>
+          ${bugBanner}
           ${img}
           <div class="category">${d.category}</div>
           <div class="title">${esc(d.title)}</div>

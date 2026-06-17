@@ -203,6 +203,11 @@ export function insertDeal(d: {
   return r.id;
 }
 
+const markNotifiedStmt = db.query("UPDATE deals SET notified = 1 WHERE id = $id");
+export function markDealNotified(id: number) {
+  markNotifiedStmt.run({ $id: id });
+}
+
 export interface DealView {
   id: number;
   product_id: number;

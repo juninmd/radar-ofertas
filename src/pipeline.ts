@@ -6,6 +6,7 @@ import {
   dealById,
   insertDeal,
   insertPrice,
+  markDealNotified,
   priceStats,
   upsertProduct,
 } from "./db.ts";
@@ -65,7 +66,10 @@ export async function runCrawlCycle(): Promise<CycleResult> {
       const view = dealById(dealId);
       if (view) {
         const ok = await notifyDeal(view);
-        if (ok) notified++;
+        if (ok) {
+          markDealNotified(dealId);
+          notified++;
+        }
       }
     }
   }
