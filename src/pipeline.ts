@@ -16,14 +16,13 @@ export async function runCrawlCycle(): Promise<CycleResult> {
   let notified = 0;
 
   for (const p of products) {
-    const dealId = await dealService.processScrapedProduct(p);
-    if (dealId) {
-      dealCount++;
-    }
+    const { dealId, notified: didNotify } = await dealService.processScrapedProduct(p);
+    if (dealId) dealCount++;
+    if (didNotify) notified++;
   }
 
   log.info(
-    `ciclo: ${products.length} coletados, ${dealCount} ofertas`,
+    `ciclo: ${products.length} coletados, ${dealCount} ofertas, ${notified} notificadas`,
   );
   return { scraped: products.length, deals: dealCount, notified };
 }

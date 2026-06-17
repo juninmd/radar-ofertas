@@ -1,5 +1,5 @@
 import type { ScrapedProduct } from "../types.ts";
-import { decodeEntities, fetchHtml, parseBrl } from "./base.ts";
+import { cleanMlUrl, decodeEntities, fetchHtml, parseBrl } from "./base.ts";
 import { log } from "../log.ts";
 
 // Crawlers best-effort por HTML público de busca. Sites de e-commerce têm
@@ -61,7 +61,8 @@ export async function crawlMercadoLivre(query: string, max: number): Promise<Scr
     const title = titles[i];
     const price = prices[i];
     if (!title || !Number.isFinite(price) || price <= 0) continue;
-    const productUrl = links[i] ?? `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}`;
+    const fallbackUrl = `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}`;
+    const productUrl = cleanMlUrl(links[i], fallbackUrl);
     const idm = productUrl.match(/MLB-?(\d+)/);
     out.push({
       source: "mercadolivre",
@@ -117,6 +118,14 @@ export async function crawlAmazon(query: string, max: number): Promise<ScrapedPr
       : NaN;
     if (!Number.isFinite(price) || price <= 0) continue;
 
+    // preço "de" (riscado) na Amazon: <span class="a-price a-text-price"...><span class="a-offscreen">R$ X</span>
+    let listPrice: number | undefined;
+    const prevM = b.match(/a-text-price[^>]*>[\s\S]{0,40}?a-offscreen[^>]*>([^<]+)</);
+    if (prevM) {
+      const lp = parseBrl(prevM[1]);
+      if (Number.isFinite(lp) && lp > price) listPrice = lp;
+    }
+
     // Try multiple image patterns
     const imgM = b.match(/<img[^>]+class="s-image"[^>]+src="(https:\/\/[^"]+)"/) ||
                  b.match(/<img[^>]+src="(https:\/\/m\.media-amazon\.com[^"]+)"/);
@@ -128,6 +137,7 @@ export async function crawlAmazon(query: string, max: number): Promise<ScrapedPr
       url: `https://www.amazon.com.br/dp/${asin}`,
       image: imgM?.[1],
       price,
+      listPrice,
       query,
       imageSource: "real",
     });
@@ -164,12 +174,15 @@ function findProducts(node: unknown, acc: Omit<ScrapedProduct, "query">[] = []):
   if (acc.length >= 30 || node == null || typeof node !== "object") return acc;
   const o = node as Record<string, unknown>;
   const title = o.title ?? o.name;
-  const price = (o.price as Record<string, unknown>)?.bestPrice ?? o.bestPrice ?? o.price;
+  const priceObj = o.price as Record<string, unknown> | undefined;
+  const price = priceObj?.bestPrice ?? o.bestPrice ?? o.price;
+  const listRaw = priceObj?.listPrice ?? priceObj?.fullPrice ?? o.listPrice;
   const id = o.id ?? o.productId ?? o.sku;
   if (typeof title === "string" && (typeof price === "number" || typeof price === "string") && id != null) {
     const n = typeof price === "number" ? price : parseBrl(String(price));
     if (Number.isFinite(n) && n > 0) {
       const img = (o.image ?? o.images ?? (o.media as Record<string, unknown>)?.path) as unknown;
+      const lp = typeof listRaw === "number" ? listRaw : typeof listRaw === "string" ? parseBrl(listRaw) : NaN;
       acc.push({
         source: "magalu",
         externalId: String(id),
@@ -177,6 +190,7 @@ function findProducts(node: unknown, acc: Omit<ScrapedProduct, "query">[] = []):
         url: absoluteUrl(o.url, "https://www.magazineluiza.com.br"),
         image: typeof img === "string" ? img : undefined,
         price: n,
+        listPrice: Number.isFinite(lp) && lp > n ? lp : undefined,
         imageSource: "real",
       });
     }

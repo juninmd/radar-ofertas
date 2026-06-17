@@ -94,6 +94,17 @@ export function startServer() {
           
           response = json(deals);
         }
+        else if (pathname === "/api/feedback" && req.method === "POST") {
+          const body = (await req.json().catch(() => null)) as { dealId?: number; vote?: number } | null;
+          const dealId = Number(body?.dealId);
+          const vote = body?.vote === 1 ? 1 : body?.vote === -1 ? -1 : null;
+          if (!Number.isFinite(dealId) || vote === null) {
+            response = json({ error: "dealId e vote (1|-1) obrigatórios" }, 400);
+          } else {
+            const ok = dealService.registerVote(dealId, vote);
+            response = json({ ok }, ok ? 200 : 404);
+          }
+        }
         else if (pathname === "/api/crawl" && req.method === "POST") {
           const result = await runCrawlCycle();
           globalCache.invalidate("deals_50");
@@ -116,6 +127,18 @@ export function startServer() {
   });
 
   log.info(`🚀 Radar de Ofertas PRO Server via Bun em http://localhost:${server.port}`);
-  
+
+  // Long-polling dos botões 👍/👎 do Telegram -> feedback de recomendação.
+  // Opt-in: evita conflito 409 com outros consumidores getUpdates (ex.: n8n).
+  if (config.telegram.enabled && config.telegram.botToken && config.telegram.pollCallbacks) {
+    const offsetRef = { offset: 0 };
+    const poll = () =>
+      pollCallbacks((dealId, vote) => dealService.registerVote(dealId, vote), offsetRef).catch(
+        (e) => log.debug("pollCallbacks erro", (e as Error).message),
+      );
+    setInterval(() => void poll(), 5000);
+    log.info("Telegram callback poller ativo (5s)");
+  }
+
   return server;
 }

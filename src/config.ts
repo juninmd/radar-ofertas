@@ -26,7 +26,7 @@ export const config = {
     .map((s) => s.trim())
     .filter(Boolean),
   maxPerQuery: num("MAX_PER_QUERY", 8),
-  sources: env("CRAWL_SOURCES", "mercadolivre,amazon,magalu")
+  sources: env("CRAWL_SOURCES", "mercadolivre,amazon,magalu,kabum,aliexpress,shopee")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
@@ -47,6 +47,9 @@ export const config = {
     enabled: bool("TELEGRAM_ENABLED", true),
     botToken: env("TELEGRAM_BOT_TOKEN"),
     chatId: env("TELEGRAM_CHAT_ID"),
+    // Long-polling dos botões 👍/👎. Desligado por padrão: este bot é
+    // compartilhado com n8n, e dois getUpdates simultâneos = HTTP 409.
+    pollCallbacks: bool("TELEGRAM_POLL_CALLBACKS", false),
   },
 
   litellm: {

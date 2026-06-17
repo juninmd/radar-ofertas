@@ -2,7 +2,14 @@ import { config } from "../config.ts";
 import { log } from "../log.ts";
 import type { ScrapedProduct } from "../types.ts";
 import { crawlMagalu, crawlMercadoLivre, crawlAmazon } from "./sites.ts";
-import { crawlMercadoLivreBrowser, crawlAmazonBrowser } from "./browser.ts";
+import {
+  crawlMercadoLivreBrowser,
+  crawlAmazonBrowser,
+  crawlShopeeBrowser,
+  crawlAliExpressBrowser,
+  crawlKabumBrowser,
+} from "./browser.ts";
+import { crawlCasasBahia, crawlPontofrio, crawlExtra } from "./extra.ts";
 
 type Crawler = (q: string, max: number) => Promise<ScrapedProduct[]>;
 
@@ -10,6 +17,13 @@ const REAL: Record<string, Crawler> = {
   magalu: crawlMagalu,
   mercadolivre: crawlMercadoLivre,
   amazon: crawlAmazon,
+  casasbahia: crawlCasasBahia,
+  pontofrio: crawlPontofrio,
+  extra: crawlExtra,
+  // browser-only: a entrada "primária" já é o crawler de browser
+  kabum: crawlKabumBrowser,
+  shopee: crawlShopeeBrowser,
+  aliexpress: crawlAliExpressBrowser,
 };
 
 const BROWSER_CRAWLERS: Record<string, Crawler> = {

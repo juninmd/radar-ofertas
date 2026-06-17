@@ -11,6 +11,12 @@ const SOURCE_LABEL: Record<string, string> = {
   mercadolivre: "Mercado Livre",
   amazon: "Amazon",
   magalu: "Magazine Luiza",
+  kabum: "KaBuM!",
+  aliexpress: "AliExpress",
+  shopee: "Shopee",
+  casasbahia: "Casas Bahia",
+  pontofrio: "Ponto",
+  extra: "Extra",
 };
 
 const BARS = "▁▂▃▄▅▆▇█";

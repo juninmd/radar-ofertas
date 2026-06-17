@@ -1,8 +1,8 @@
-import { PriceRepository, ProductRepository, DealRepository } from "./repositories.ts";
+import { PriceRepository, ProductRepository, DealRepository, FeedbackRepository } from "./repositories.ts";
 import { evaluate, isPriceBug } from "./deal.ts";
 import { analyzeDeal } from "./ai.ts";
 import { notifyDeal } from "./telegram.ts";
-import { classify } from "./category.ts";
+import { classify, keywords } from "./category.ts";
 import { log } from "./log.ts";
 import { config } from "./config.ts";
 
@@ -10,6 +10,7 @@ export class DealService {
   private productRepo = new ProductRepository();
   private priceRepo = new PriceRepository();
   private dealRepo = new DealRepository();
+  private feedbackRepo = new FeedbackRepository();
 
   /**
    * Predictive analysis: Calculates the price trend based on recent history.
@@ -39,11 +40,14 @@ export class DealService {
     this.priceRepo.insert(productId, p.price);
 
     const stats = this.priceRepo.getStats(productId);
-    const evalResult = evaluate(p.price, stats, p.title, category);
-    
-    if (!evalResult.isDeal) return null;
+    const evalResult = evaluate(p.price, stats, p.title, category, p.listPrice);
 
-    const shouldNotify = evalResult.score >= config.notifyScore;
+    if (!evalResult.isDeal) return { dealId: null, notified: false };
+
+    // Evita spam: não renotifica o mesmo produto em <12h.
+    const shouldNotify =
+      evalResult.score >= config.notifyScore &&
+      !this.dealRepo.wasNotifiedRecently(productId, 12);
     let aiComment: string | null = null;
     if (shouldNotify) {
       aiComment = await analyzeDeal(p.title, p.source, evalResult);
@@ -61,18 +65,24 @@ export class DealService {
       notified: false,
     });
 
+    let notified = false;
     if (shouldNotify) {
       const view = this.dealRepo.getById(dealId);
       if (view) {
-        const ok = await notifyDeal(view);
-        if (ok) {
-          // In a real pro architecture, we'd have a 'markAsNotified' in the repo
-          // For now, keeping it simple within the service
-        }
+        notified = await notifyDeal(view);
+        if (notified) this.dealRepo.markNotified(dealId);
       }
     }
 
-    return dealId;
+    return { dealId, notified };
+  }
+
+  /** Registra voto (👍/👎) vindo do dashboard ou do Telegram. */
+  registerVote(dealId: number, vote: 1 | -1) {
+    const deal = this.dealRepo.getById(dealId);
+    if (!deal) return false;
+    this.feedbackRepo.insert(dealId, deal.category, keywords(deal.title).join(","), vote);
+    return true;
   }
 
   getDashboardDeals(limit = 50) {

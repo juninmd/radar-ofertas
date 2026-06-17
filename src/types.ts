@@ -4,6 +4,7 @@ export interface ScrapedProduct {
   title: string;
   url: string;
   price: number; // BRL
+  listPrice?: number; // preço "de" (riscado) anunciado pelo site, referência p/ desconto
   image?: string;
   query: string; // termo de busca que originou
   imageSource?: "real" | "demo"; // indicates image reality

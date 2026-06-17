@@ -125,4 +125,26 @@ export class DealRepository extends BaseRepository {
     
     return this.db.query(`SELECT ${select} FROM deals d JOIN products p ON p.id = d.product_id WHERE d.id = $id`).get({ $id: id });
   }
+
+  markNotified(id: number) {
+    this.db.query("UPDATE deals SET notified = 1 WHERE id = $id").run({ $id: id });
+  }
+
+  /** True se já houve deal notificado p/ este produto nas últimas N horas. */
+  wasNotifiedRecently(productId: number, hours: number): boolean {
+    const r = this.db.query(
+      `SELECT COUNT(*) c FROM deals
+       WHERE product_id = $pid AND notified = 1
+         AND created_at >= datetime('now', $delta)`
+    ).get({ $pid: productId, $delta: `-${hours} hours` }) as { c: number };
+    return r.c > 0;
+  }
+}
+
+export class FeedbackRepository extends BaseRepository {
+  insert(dealId: number | null, category: string, keywords: string, vote: 1 | -1) {
+    this.db.query(
+      "INSERT INTO feedback (deal_id, category, keywords, vote) VALUES ($did, $cat, $kw, $vote)"
+    ).run({ $did: dealId, $cat: category, $kw: keywords, $vote: vote });
+  }
 }
