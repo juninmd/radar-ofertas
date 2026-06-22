@@ -41,7 +41,7 @@ export class DealService {
     this.priceRepo.insert(productId, p.price);
 
     const stats = this.priceRepo.getStats(productId);
-    const evalResult = evaluate(p.price, stats, p.title, category);
+    const evalResult = evaluate(p.price, stats, p.title, category, p.listPrice);
 
     if (!evalResult.isDeal) return { dealId: null, notified: false };
 

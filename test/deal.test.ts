@@ -44,9 +44,30 @@ describe("evaluate (detecção de oferta)", () => {
   });
 
   test("oferta real exige histórico: sem leituras suficientes não dispara", () => {
-    // count=1: mesmo que o site anuncie desconto, sem histórico real não é oferta.
+    // count=1: sem histórico e sem preço-de, não há baseline -> não é oferta.
     const r = evaluate(140, stats(140, 0, 1), "Monitor Gamer 144Hz", "perifericos");
     expect(r.isDeal).toBe(false);
     expect(r.reasons).toContain("historico-insuficiente");
+  });
+
+  test("dia-1 sem histórico: usa preço-de do site como baseline", () => {
+    // count=1, mas o site anuncia preço-de 200 e atual 140 -> desconto 30% dispara.
+    const r = evaluate(140, stats(0, 0, 1), "Monitor Gamer 144Hz", "perifericos", 200);
+    expect(r.isDeal).toBe(true);
+    expect(r.discountPct).toBeCloseTo(30, 0);
+    expect(r.score).toBeGreaterThan(0);
+    expect(r.reasons.some((x) => x.startsWith("preco-de"))).toBe(true);
+  });
+
+  test("dia-1 com preço-de mas desconto pequeno não dispara", () => {
+    const r = evaluate(190, stats(0, 0, 1), "Monitor Gamer 144Hz", "perifericos", 200);
+    expect(r.isDeal).toBe(false);
+  });
+
+  test("histórico próprio tem precedência sobre preço-de", () => {
+    // count>=3: ignora listPrice e avalia contra a média observada.
+    const r = evaluate(70, stats(100, 10), "Whey 900g", "suplementos", 999);
+    expect(r.isDeal).toBe(true);
+    expect(r.avg).toBe(100);
   });
 });

@@ -15,18 +15,23 @@ export function evaluate(
   stats: PriceStats,
   title: string,
   category: string,
+  listPrice?: number,
 ): DealEval {
   const reasons: string[] = [];
 
   // Oferta REAL = preço atual abaixo da média OBSERVADA no histórico.
-  // O preço "de" (riscado) do site é ignorado de propósito: em BR ele é
-  // frequentemente inflado e produz desconto-fantasma. Exigimos evidência
-  // histórica real antes de declarar oferta.
+  // O preço "de" (riscado) do site é ignorado quando há histórico próprio,
+  // pois em BR ele é frequentemente inflado e produz desconto-fantasma.
   const avg = stats.avg;
   const discountPct = avg > 0 ? ((avg - price) / avg) * 100 : 0;
   const zscore = stats.std > 0 ? (price - stats.avg) / stats.std : 0;
 
   if (stats.count < config.minHistoryPoints || avg <= 0) {
+    // Fallback dia-1: sem histórico próprio suficiente, usa o preço "de"
+    // do site como baseline para que ofertas genuínas postem já na 1ª coleta.
+    if (listPrice && listPrice > price) {
+      return evaluateAgainstBaseline(price, listPrice, title, category);
+    }
     return { isDeal: false, price, avg, discountPct, zscore, score: 0, reasons: ["historico-insuficiente"] };
   }
 
@@ -52,4 +57,28 @@ export function evaluate(
   const score = Math.min(discountStrength * aff.multiplier, 1);
 
   return { isDeal, price, avg, discountPct, zscore, score, reasons };
+}
+
+// Avalia oferta contra o preço "de" (riscado) do site quando ainda não há
+// histórico próprio. Mantém o mesmo critério de desconto e scoring de evaluate().
+function evaluateAgainstBaseline(
+  price: number,
+  listPrice: number,
+  title: string,
+  category: string,
+): DealEval {
+  const discountPct = ((listPrice - price) / listPrice) * 100;
+  const base = { price, avg: listPrice, discountPct, zscore: 0 };
+
+  if (discountPct < config.minDiscountPct) {
+    return { ...base, isDeal: false, score: 0, reasons: ["preco-de: desconto insuficiente"] };
+  }
+
+  const reasons = [`preco-de: desconto=${discountPct.toFixed(1)}% (>=${config.minDiscountPct}%)`];
+  const discountStrength = Math.min(Math.max(discountPct, 0) / 40, 1);
+  const aff = affinity(title, category);
+  reasons.push(aff.detail);
+  const score = Math.min(discountStrength * aff.multiplier, 1);
+
+  return { ...base, isDeal: true, score, reasons };
 }
