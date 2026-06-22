@@ -13,6 +13,17 @@ import { crawlCasasBahia, crawlPontofrio, crawlExtra } from "./extra.ts";
 
 type Crawler = (q: string, max: number) => Promise<ScrapedProduct[]>;
 
+// Aborta uma chamada de crawler que passe do teto. O browser pendurado por trás
+// pode até vazar, mas o ciclo segue e notifica as ofertas já coletadas.
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`timeout ${ms}ms: ${label}`)), ms),
+    ),
+  ]);
+}
+
 const REAL: Record<string, Crawler> = {
   magalu: crawlMagalu,
   mercadolivre: crawlMercadoLivre,
@@ -43,7 +54,11 @@ export async function crawlAll(): Promise<ScrapedProduct[]> {
     for (const query of config.queries) {
       let items: ScrapedProduct[] = [];
       try {
-        items = await real(query, config.maxPerQuery);
+        items = await withTimeout(
+          real(query, config.maxPerQuery),
+          config.crawlTimeoutMs,
+          `${source}/${query}`,
+        );
       } catch (e) {
         log.warn(`crawl ${source}/${query} falhou`, (e as Error).message);
       }
@@ -52,7 +67,11 @@ export async function crawlAll(): Promise<ScrapedProduct[]> {
       if (items.length === 0 && BROWSER_CRAWLERS[source]) {
         try {
           log.debug(`browser fallback ${source}/${query}...`);
-          items = await BROWSER_CRAWLERS[source](query, config.maxPerQuery);
+          items = await withTimeout(
+            BROWSER_CRAWLERS[source](query, config.maxPerQuery),
+            config.crawlTimeoutMs,
+            `${source}/${query} (browser)`,
+          );
         } catch (e) {
           log.warn(`browser crawl ${source}/${query} falhou`, (e as Error).message);
         }

@@ -26,6 +26,9 @@ export const config = {
     .map((s) => s.trim())
     .filter(Boolean),
   maxPerQuery: num("MAX_PER_QUERY", 8),
+  // teto por chamada de crawler: fonte lenta/travada (browser pendurado) não
+  // pode segurar o ciclo inteiro e estourar o deadline do CronJob.
+  crawlTimeoutMs: num("CRAWL_TIMEOUT_MS", 40000),
   sources: env("CRAWL_SOURCES", "mercadolivre,amazon,magalu,kabum,aliexpress,shopee")
     .split(",")
     .map((s) => s.trim().toLowerCase())
