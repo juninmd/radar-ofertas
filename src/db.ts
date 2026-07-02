@@ -350,3 +350,58 @@ export function imageStats(): ImageStats {
 
   return { total, real, demo, unknown, bySource };
 }
+
+// ── Gerenciamento de Consultas de Busca (Queries) ──
+db.exec(`
+CREATE TABLE IF NOT EXISTS search_queries (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  query       TEXT NOT NULL UNIQUE,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`);
+
+// Popula com as consultas padrão do config se a tabela estiver vazia
+try {
+  const countRow = db.query("SELECT COUNT(*) c FROM search_queries").get() as { c: number };
+  if (countRow && countRow.c === 0) {
+    const insertQ = db.query("INSERT INTO search_queries (query) VALUES ($query)");
+    for (const q of config.queries) {
+      try {
+        insertQ.run({ $query: q });
+      } catch {
+        // ignora duplicados
+      }
+    }
+  }
+} catch (e) {
+  console.log("[DB] Erro ao inicializar search_queries:", (e as Error).message);
+}
+
+export function getSearchQueries(): string[] {
+  try {
+    const rows = db.query("SELECT query FROM search_queries ORDER BY id ASC").all() as { query: string }[];
+    return rows.map(r => r.query);
+  } catch {
+    return config.queries; // fallback se falhar
+  }
+}
+
+export function addSearchQuery(query: string): boolean {
+  if (!query || !query.trim()) return false;
+  try {
+    db.query("INSERT INTO search_queries (query) VALUES ($query)").run({ $query: query.trim() });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function removeSearchQuery(query: string): boolean {
+  if (!query || !query.trim()) return false;
+  try {
+    db.query("DELETE FROM search_queries WHERE query = $query").run({ $query: query.trim() });
+    return true;
+  } catch {
+    return false;
+  }
+}

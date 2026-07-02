@@ -1,6 +1,7 @@
 import { config } from "../config.ts";
 import { log } from "../log.ts";
 import type { ScrapedProduct } from "../types.ts";
+import { getSearchQueries } from "../db.ts";
 import { crawlMagalu, crawlMercadoLivre, crawlAmazon } from "./sites.ts";
 import {
   crawlMercadoLivreBrowser,
@@ -8,6 +9,7 @@ import {
   crawlShopeeBrowser,
   crawlAliExpressBrowser,
   crawlKabumBrowser,
+  crawlMagaluBrowser,
 } from "./browser.ts";
 import { crawlCasasBahia, crawlPontofrio, crawlExtra } from "./extra.ts";
 
@@ -40,6 +42,7 @@ const REAL: Record<string, Crawler> = {
 const BROWSER_CRAWLERS: Record<string, Crawler> = {
   mercadolivre: crawlMercadoLivreBrowser,
   amazon: crawlAmazonBrowser,
+  magalu: crawlMagaluBrowser,
 };
 
 // Coleta 100% real: HTTP -> fallback browser. Sem dados mock.
@@ -51,7 +54,8 @@ export async function crawlAll(): Promise<ScrapedProduct[]> {
       log.warn(`fonte desconhecida: ${source}`);
       continue;
     }
-    for (const query of config.queries) {
+    const queries = getSearchQueries();
+    for (const query of queries) {
       let items: ScrapedProduct[] = [];
       try {
         items = await withTimeout(

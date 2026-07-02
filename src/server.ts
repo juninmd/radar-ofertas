@@ -4,6 +4,7 @@ import { runCrawlCycle } from "./pipeline.ts";
 import { pollCallbacks } from "./telegram.ts";
 import { DealService } from "./services.ts";
 import { globalCache } from "./cache.ts";
+import { getSearchQueries, addSearchQuery, removeSearchQuery } from "./db.ts";
 
 const dealService = new DealService();
 
@@ -110,6 +111,29 @@ export function startServer() {
           globalCache.invalidate("deals_50");
           globalCache.invalidate("deals_100");
           response = json(result);
+        }
+        else if (pathname === "/api/queries" && req.method === "GET") {
+          response = json(getSearchQueries());
+        }
+        else if (pathname === "/api/queries" && req.method === "POST") {
+          const body = (await req.json().catch(() => null)) as { query?: string } | null;
+          const q = body?.query?.trim();
+          if (!q) {
+            response = json({ error: "O campo query é obrigatório" }, 400);
+          } else {
+            const added = addSearchQuery(q);
+            response = json({ ok: added }, added ? 201 : 400);
+          }
+        }
+        else if (pathname === "/api/queries" && req.method === "DELETE") {
+          const body = (await req.json().catch(() => null)) as { query?: string } | null;
+          const q = body?.query?.trim();
+          if (!q) {
+            response = json({ error: "O campo query é obrigatório" }, 400);
+          } else {
+            const removed = removeSearchQuery(q);
+            response = json({ ok: removed }, removed ? 200 : 404);
+          }
         }
         else {
           response = new Response("not found", { status: 404 });

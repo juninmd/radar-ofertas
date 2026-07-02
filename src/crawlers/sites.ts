@@ -147,7 +147,8 @@ export async function crawlAmazon(query: string, max: number): Promise<ScrapedPr
 }
 
 export async function crawlMagalu(query: string, max: number): Promise<ScrapedProduct[]> {
-  const url = `https://www.magazineluiza.com.br/busca/${encodeURIComponent(query)}/`;
+  // Substitui espaços por + para evitar redirecionamento (que aciona bloqueio do Akamai)
+  const url = `https://www.magazineluiza.com.br/busca/${encodeURIComponent(query.replace(/\s+/g, "+"))}/`;
   const html = await fetchHtml(url);
   if (!html) return [];
   const out: ScrapedProduct[] = [];
@@ -170,25 +171,54 @@ export async function crawlMagalu(query: string, max: number): Promise<ScrapedPr
 }
 
 // busca recursiva por nós que parecem produto no JSON do Next
-function findProducts(node: unknown, acc: Omit<ScrapedProduct, "query">[] = []): Omit<ScrapedProduct, "query">[] {
-  if (acc.length >= 30 || node == null || typeof node !== "object") return acc;
+export function findProducts(node: unknown, acc: Omit<ScrapedProduct, "query">[] = []): Omit<ScrapedProduct, "query">[] {
+  if (acc.length >= 40 || node == null || typeof node !== "object") return acc;
   const o = node as Record<string, unknown>;
   const title = o.title ?? o.name;
   const priceObj = o.price as Record<string, unknown> | undefined;
   const price = priceObj?.bestPrice ?? o.bestPrice ?? o.price;
   const listRaw = priceObj?.listPrice ?? priceObj?.fullPrice ?? o.listPrice;
   const id = o.id ?? o.productId ?? o.sku;
+  
   if (typeof title === "string" && (typeof price === "number" || typeof price === "string") && id != null) {
     const n = typeof price === "number" ? price : parseBrl(String(price));
     if (Number.isFinite(n) && n > 0) {
-      const img = (o.image ?? o.images ?? (o.media as Record<string, unknown>)?.path) as unknown;
+      // Extrai imagem de forma robusta suportando strings, arrays e objetos aninhados
+      const img = (o.image ?? o.images ?? (o.media as Record<string, unknown>)?.path ?? o.imageUrl) as unknown;
+      let imageUrl: string | undefined;
+      if (typeof img === "string") {
+        imageUrl = img;
+      } else if (Array.isArray(img) && img.length > 0) {
+        const first = img[0];
+        if (typeof first === "string") {
+          imageUrl = first;
+        } else if (first && typeof first === "object") {
+          imageUrl = (first.path ?? first.url ?? first.imageUrl) as string | undefined;
+        }
+      } else if (img && typeof img === "object") {
+        imageUrl = ((img as any).path ?? (img as any).url ?? (img as any).imageUrl) as string | undefined;
+      }
+
+      // Garante imagem absoluta caso seja protocol-relative ou relativa
+      if (imageUrl && imageUrl.startsWith("//")) {
+        imageUrl = "https:" + imageUrl;
+      } else if (imageUrl && imageUrl.startsWith("/")) {
+        imageUrl = "https://www.magazineluiza.com.br" + imageUrl;
+      }
+
+      // Constrói URL do produto canônica robustamente caso a original seja nula ou incompleta
+      let rawUrl = o.url ?? o.path ?? o.slug ?? o.canonical;
+      if (typeof rawUrl !== "string") {
+        rawUrl = `/p/${id}/`;
+      }
+
       const lp = typeof listRaw === "number" ? listRaw : typeof listRaw === "string" ? parseBrl(listRaw) : NaN;
       acc.push({
         source: "magalu",
         externalId: String(id),
         title: decodeEntities(title),
-        url: absoluteUrl(o.url, "https://www.magazineluiza.com.br"),
-        image: typeof img === "string" ? img : undefined,
+        url: absoluteUrl(rawUrl, "https://www.magazineluiza.com.br"),
+        image: imageUrl,
         price: n,
         listPrice: Number.isFinite(lp) && lp > n ? lp : undefined,
         imageSource: "real",

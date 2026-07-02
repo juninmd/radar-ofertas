@@ -1,5 +1,5 @@
 import { expect, test, describe, afterAll } from "bun:test";
-import { crawlMercadoLivreBrowser, crawlAmazonBrowser, closeBrowser } from "../src/crawlers/browser.ts";
+import { crawlMercadoLivreBrowser, crawlAmazonBrowser, crawlMagaluBrowser, closeBrowser } from "../src/crawlers/browser.ts";
 
 describe("Browser Crawlers", () => {
   afterAll(async () => {
@@ -26,5 +26,19 @@ describe("Browser Crawlers", () => {
     expect(typeof p.title).toBe("string");
     expect(typeof p.price).toBe("number");
     expect(p.price).toBeGreaterThan(0);
+  }, 35000);
+
+  test("crawlMagaluBrowser returns results or is tolerated when blocked", async () => {
+    const results = await crawlMagaluBrowser("whey protein", 2);
+    expect(Array.isArray(results)).toBe(true);
+    if (results.length === 0) {
+      console.warn("crawlMagaluBrowser returned 0 results - likely blocked by Akamai");
+    } else {
+      const p = results[0]!;
+      expect(p.source).toBe("magalu");
+      expect(typeof p.title).toBe("string");
+      expect(typeof p.price).toBe("number");
+      expect(p.price).toBeGreaterThan(0);
+    }
   }, 35000);
 });

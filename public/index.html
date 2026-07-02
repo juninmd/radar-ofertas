@@ -160,6 +160,7 @@
         </div>
         <div class="right">
           <button class="icon" onclick="toggleTheme()" title="Tema"><i data-lucide="moon" id="theme-i" size="17"></i></button>
+          <button class="icon" onclick="openQueriesModal()" title="Configurações de Busca"><i data-lucide="settings" size="17"></i></button>
           <button id="btn-crawl" onclick="runCycle()"><i data-lucide="refresh-cw" size="15"></i> Rodar ciclo</button>
           <button class="btn brand" onclick="load()"><i data-lucide="zap" size="15"></i> Atualizar</button>
         </div>
@@ -191,6 +192,20 @@
           <div class="stats" id="m-stats"></div>
           <div class="chartbox"><canvas id="chart"></canvas></div>
           <div id="m-ai" style="margin-top:16px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="modal-queries" onclick="if(event.target===this)closeQueriesModal()">
+      <div class="modal">
+        <div class="h"><b>Termos de Busca Monitorados</b><button class="icon" onclick="closeQueriesModal()"><i data-lucide="x" size="18"></i></button></div>
+        <div class="c">
+          <p style="font-size:13px;color:var(--muted);margin-top:0;margin-bottom:16px">Adicione ou remova os termos que o crawler deve pesquisar nos e-commerces. As mudanças são salvas na base de dados.</p>
+          <div style="display:flex;gap:8px;margin-bottom:18px">
+            <input id="new-query-input" placeholder="Novo termo (ex: cadeira gamer)" style="flex:1;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--txt);font-size:13px;outline:none" onkeydown="if(event.key==='Enter')addNewQuery()" />
+            <button class="btn brand" onclick="addNewQuery()" style="padding:9px 16px"><i data-lucide="plus" size="15"></i> Adicionar</button>
+          </div>
+          <div id="queries-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
         </div>
       </div>
     </div>
@@ -359,9 +374,55 @@
         setTimeout(() => { el.classList.remove("on"); setTimeout(() => el.remove(), 300); }, 2800);
       }
 
+      async function loadQueries() {
+        try {
+          const r = await fetch("/api/queries");
+          const list = await r.json();
+          const listEl = document.getElementById("queries-list");
+          listEl.innerHTML = list.map(q => 
+            `<div class="chip active" style="display:inline-flex;align-items:center;gap:8px;cursor:default">${esc(q)} 
+              <i data-lucide="x" size="13" style="cursor:pointer" onclick="deleteQuery('${esc(q)}')"></i>
+             </div>`
+          ).join("");
+          lucide.createIcons();
+        } catch { toast("Erro ao carregar termos", "bad"); }
+      }
+      async function addNewQuery() {
+        const input = document.getElementById("new-query-input");
+        const query = input.value.trim();
+        if (!query) return;
+        try {
+          const r = await fetch("/api/queries", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ query })
+          });
+          if (r.ok) {
+            input.value = "";
+            toast("Termo adicionado", "good");
+            loadQueries();
+          } else { toast("Termo já existe ou é inválido", "bad"); }
+        } catch { toast("Erro ao adicionar termo", "bad"); }
+      }
+      async function deleteQuery(query) {
+        try {
+          const r = await fetch("/api/queries", {
+            method: "DELETE",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ query })
+          });
+          if (r.ok) {
+            toast("Termo removido", "good");
+            loadQueries();
+          } else { toast("Erro ao remover termo", "bad"); }
+        } catch { toast("Erro ao remover termo", "bad"); }
+      }
+      function openQueriesModal() { loadQueries(); document.getElementById("modal-queries").classList.add("open"); }
+      function closeQueriesModal() { document.getElementById("modal-queries").classList.remove("open"); }
+
       applyTheme(); buildChips(); skeletons(); load();
       setInterval(load, 60000);
-      window.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+      window.addEventListener("keydown", e => { if (e.key === "Escape") { closeModal(); closeQueriesModal(); } });
     </script>
   </body>
 </html>

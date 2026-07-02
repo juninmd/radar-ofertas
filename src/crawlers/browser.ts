@@ -5,6 +5,7 @@ import * as cheerio from "cheerio";
 import { log } from "../log.ts";
 import type { ScrapedProduct } from "../types.ts";
 import { cleanMlUrl, decodeEntities, parseBrl } from "./base.ts";
+import { findProducts } from "./sites.ts";
 
 puppeteerExtra.use(StealthPlugin() as any);
 
@@ -443,6 +444,77 @@ export async function crawlAliExpressBrowser(query: string, max: number): Promis
     return out;
   } catch (e) {
     log.warn(`AliExpress "${query}" failed: ${(e as Error).message}`);
+    return [];
+  } finally {
+    if (page) await page.close();
+  }
+}
+
+// ── Magazine Luiza ──────────────────────────────────────────────────────────
+// Next.js: produtos no __NEXT_DATA__. Se a rota direta de busca for bloqueada,
+// tentamos o fluxo interativo pela home (digitar e buscar) para herdar cookies.
+export async function crawlMagaluBrowser(query: string, max: number): Promise<ScrapedProduct[]> {
+  const browser = await getBrowser();
+  if (!browser) return [];
+
+  const url = `https://www.magazineluiza.com.br/busca/${encodeURIComponent(query)}/`;
+  let page: Page | null = null;
+
+  try {
+    page = await browser.newPage();
+    await page.setUserAgent(DESKTOP_UA);
+    await page.setRequestInterception(true);
+    page.on("request", (req) => {
+      const resourceType = req.resourceType();
+      if (!req.method().includes("GET") || BLOCKED_RESOURCE_TYPES.has(resourceType)) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
+    try {
+      await page.waitForSelector("#__NEXT_DATA__", { timeout: 8000 });
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+
+    let html = await page.content();
+    
+    // Se bloqueado, executa o fallback de interação real pela homepage
+    if (!html || html.includes("Não é possível acessar a página") || !html.includes("__NEXT_DATA__")) {
+      log.debug(`Magalu browser "/busca" bloqueado. Tentando fluxo interativo pela home para "${query}"...`);
+      await page.goto("https://www.magazineluiza.com.br/", { waitUntil: "domcontentloaded", timeout: 20000 });
+      await page.waitForSelector("#header-search-input", { timeout: 10000 });
+      await page.click("#header-search-input");
+      await page.type("#header-search-input", query, { delay: 100 });
+      await page.waitForSelector('[data-testid="input-icon-end"]', { timeout: 5000 });
+      await page.click('[data-testid="input-icon-end"]');
+      await new Promise((resolve) => setTimeout(resolve, 6000));
+      html = await page.content();
+    }
+
+    if (!html || html.length < 5000) return [];
+
+    const nextM = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    if (!nextM) {
+      log.debug(`Magalu browser "${query}" -> sem __NEXT_DATA__`);
+      return [];
+    }
+
+    const data = JSON.parse(nextM[1]);
+    const list = findProducts(data);
+    const out: ScrapedProduct[] = [];
+    for (const p of list) {
+      if (out.length >= max) break;
+      out.push({ ...p, query });
+    }
+
+    log.debug(`Magalu browser "${query}" -> ${out.length} itens`);
+    return out;
+  } catch (e) {
+    log.warn(`Magalu browser "${query}" failed: ${(e as Error).message}`);
     return [];
   } finally {
     if (page) await page.close();
