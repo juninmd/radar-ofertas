@@ -84,6 +84,9 @@ export async function crawlAll(): Promise<ScrapedProduct[]> {
       if (items.length > 0) log.info(`[real] ${source}/${query} -> ${items.length}`);
       else log.warn(`[real] ${source}/${query} -> 0 (site bloqueou/sem dados)`);
       all.push(...items);
+
+      // Throttling defensivo para evitar blocks por "Too Many Requests" (HTTP 429) e Akamai
+      await new Promise((resolve) => setTimeout(resolve, 2000 + Math.random() * 3000));
     }
   }
   log.info(`crawl total: ${all.length} produtos`);
