@@ -9,7 +9,7 @@ export async function analyzeDeal(
   source: string,
   deal: DealEval,
 ): Promise<string | null> {
-  if (!config.litellm.enabled || !config.litellm.apiKey) return null;
+  if (!config.litellm.enabled || process.env.LITELLM_ENABLED === "false" || !config.litellm.apiKey) return null;
 
   const prompt =
     `Você é o "Faro de Ofertas", um caçador de promoções brasileiro afiado e bem-humorado. ` +

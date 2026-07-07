@@ -6,6 +6,7 @@ import { log } from "./log.ts";
 // Best-effort: se indisponível, loga e segue (não derruba o ciclo).
 
 export function clusterEnabled(): boolean {
+  if (process.env.CLUSTER_DATABASE_URL === "") return false;
   return !!config.cluster.url;
 }
 

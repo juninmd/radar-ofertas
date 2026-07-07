@@ -178,17 +178,20 @@ export async function crawlAmazonBrowser(query: string, max: number): Promise<Sc
 
     const $ = cheerio.load(html);
     const out: ScrapedProduct[] = [];
+    const seenAsins = new Set<string>();
     
     $("[data-asin]").each((i, el) => {
       if (out.length >= max) return;
       
       const asin = $(el).attr("data-asin");
       if (!asin || asin.length < 5) return;
+      if (seenAsins.has(asin)) return;
       
       let title = $(el).find("h2 a span").first().text().trim();
       if (!title) title = $(el).find("a.a-link-normal.a-text-normal").first().text().trim();
       if (!title) title = $(el).find(".a-size-base-plus").first().text().trim();
       if (!title) title = $(el).find(".a-size-medium").first().text().trim();
+      if (!title) title = $(el).find("h2").first().text().trim();
       
       const whole = $(el).find(".a-price-whole").first().text().trim();
       const fraction = $(el).find(".a-price-fraction").first().text().trim();
@@ -214,6 +217,7 @@ export async function crawlAmazonBrowser(query: string, max: number): Promise<Sc
         }
 
         if (Number.isFinite(price) && price > 0) {
+          seenAsins.add(asin);
           out.push({
             source: "amazon",
             externalId: asin,

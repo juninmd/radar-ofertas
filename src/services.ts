@@ -44,6 +44,10 @@ export class DealService {
     const evalResult = evaluate(p.price, stats, p.title, category, p.listPrice);
 
     if (!evalResult.isDeal) return { dealId: null, notified: false };
+    if (this.dealRepo.hasDealForProduct(productId)) {
+      log.debug(`oferta repetida ignorada: ${p.source}:${p.externalId}`);
+      return { dealId: null, notified: false };
+    }
 
     // Evita spam: não renotifica o mesmo produto em <12h.
     const shouldNotify =

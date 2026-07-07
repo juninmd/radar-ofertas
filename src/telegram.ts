@@ -115,7 +115,7 @@ async function sendTelegram(
 
 export async function notifyDeal(d: DealView): Promise<boolean> {
   const caption = buildCaption(d);
-  if (!config.telegram.enabled) {
+  if (!config.telegram.enabled || process.env.TELEGRAM_ENABLED === "false") {
     log.info(`[telegram dry-run] ${d.title} ${fmt(d.price)}`);
     return false;
   }
@@ -161,7 +161,7 @@ export async function pollCallbacks(
   onVote: (dealId: number, vote: 1 | -1) => void,
   offsetRef: { offset: number },
 ): Promise<void> {
-  if (!config.telegram.enabled || !config.telegram.botToken) return;
+  if (!config.telegram.enabled || process.env.TELEGRAM_ENABLED === "false" || !config.telegram.botToken) return;
   try {
     const res = await fetch(
       `https://api.telegram.org/bot${config.telegram.botToken}/getUpdates?timeout=0&offset=${offsetRef.offset}&allowed_updates=["callback_query"]`,

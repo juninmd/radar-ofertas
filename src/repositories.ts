@@ -139,6 +139,14 @@ export class DealRepository extends BaseRepository {
     ).get({ $pid: productId, $delta: `-${hours} hours` }) as { c: number };
     return r.c > 0;
   }
+
+  /** True se produto já virou oferta antes, mesmo que Telegram/dry-run tenha falhado. */
+  hasDealForProduct(productId: number): boolean {
+    const r = this.db.query(
+      "SELECT COUNT(*) c FROM deals WHERE product_id = $pid"
+    ).get({ $pid: productId }) as { c: number };
+    return r.c > 0;
+  }
 }
 
 export class FeedbackRepository extends BaseRepository {

@@ -1,5 +1,16 @@
-import { expect, test, describe } from "bun:test";
-import { sparkline } from "../src/telegram.ts";
+import { beforeAll, describe, expect, test } from "bun:test";
+import { mkdtempSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+process.env.DB_PATH = join(mkdtempSync(join(tmpdir(), "radar-ofertas-telegram-")), "test.sqlite");
+process.env.TELEGRAM_ENABLED = "false";
+
+let sparkline: any;
+
+beforeAll(async () => {
+  ({ sparkline } = await import("../src/telegram.ts"));
+});
 
 describe("sparkline", () => {
   test("série curta retorna vazio", () => {
