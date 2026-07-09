@@ -181,7 +181,7 @@ export function findProducts(node: unknown, acc: Omit<ScrapedProduct, "query">[]
   const id = o.id ?? o.productId ?? o.sku;
   
   if (typeof title === "string" && (typeof price === "number" || typeof price === "string") && id != null) {
-    const n = typeof price === "number" ? price : parseBrl(String(price));
+    const n = typeof price === "number" ? price / 100 : Number(String(price).replace(/[^\d]/g, "")) / 100;
     if (Number.isFinite(n) && n > 0) {
       // Extrai imagem de forma robusta suportando strings, arrays e objetos aninhados
       const img = (o.image ?? o.images ?? (o.media as Record<string, unknown>)?.path ?? o.imageUrl) as unknown;
@@ -212,7 +212,7 @@ export function findProducts(node: unknown, acc: Omit<ScrapedProduct, "query">[]
         rawUrl = `/p/${id}/`;
       }
 
-      const lp = typeof listRaw === "number" ? listRaw : typeof listRaw === "string" ? parseBrl(listRaw) : NaN;
+      const lp = typeof listRaw === "number" ? listRaw / 100 : typeof listRaw === "string" ? Number(listRaw.replace(/[^\d]/g, "")) / 100 : NaN;
       acc.push({
         source: "magalu",
         externalId: String(id),
