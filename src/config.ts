@@ -29,10 +29,13 @@ export const config = {
   // teto por chamada de crawler: fonte lenta/travada (browser pendurado) não
   // pode segurar o ciclo inteiro e estourar o deadline do CronJob.
   crawlTimeoutMs: num("CRAWL_TIMEOUT_MS", 40000),
-  sources: env("CRAWL_SOURCES", "mercadolivre,amazon,magalu,kabum,aliexpress,shopee")
+  sources: env("CRAWL_SOURCES", "mercadolivre,amazon,magalu,kabum,aliexpress,shopee,zoom,buscape")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
+  // fontes coletadas em paralelo (hosts distintos). O throttle por host continua
+  // dentro de cada fonte; isto só evita esperar 9 fontes em fila.
+  crawlConcurrency: num("CRAWL_CONCURRENCY", 4),
 
   // ciclo contínuo: coleta a cada N minutos (default 1h)
   crawlIntervalMin: num("CRAWL_INTERVAL_MIN", 60),
@@ -42,6 +45,10 @@ export const config = {
   zThreshold: num("Z_THRESHOLD", 1.2), // preço < média - z*desvio
   minDiscountPct: num("MIN_DISCOUNT_PCT", 12), // ou desconto >= % sobre a média
   notifyScore: num("NOTIFY_SCORE", 0.5), // score combinado mínimo p/ notificar
+  // Teto de notificações por ciclo. Com muitas fontes, o 1o ciclo de um produto
+  // novo dispara pelo preço "de" e um lote grande viraria dezenas de mensagens —
+  // além de estourar o deadline do CronJob (1 chamada de IA por oferta postada).
+  maxNotificationsPerCycle: num("MAX_NOTIFICATIONS_PER_CYCLE", 10),
 
   // bug de precificação: desconto absurdo (ex: PS5 por R$100) = erro de preço
   priceBugDiscountPct: num("PRICE_BUG_DISCOUNT_PCT", 70),

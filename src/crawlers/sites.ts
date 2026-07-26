@@ -1,5 +1,13 @@
 import type { ScrapedProduct } from "../types.ts";
-import { cleanMlUrl, decodeEntities, fetchHtml, parseBrl } from "./base.ts";
+import {
+  cleanMlUrl,
+  decodeEntities,
+  extractNextData,
+  fetchHtml,
+  magaluSlug,
+  parseBrl,
+  parseMoney,
+} from "./base.ts";
 import { log } from "../log.ts";
 
 // Crawlers best-effort por HTML público de busca. Sites de e-commerce têm
@@ -146,87 +154,132 @@ export async function crawlAmazon(query: string, max: number): Promise<ScrapedPr
   return out;
 }
 
-export async function crawlMagalu(query: string, max: number): Promise<ScrapedProduct[]> {
-  // Substitui espaços por + para evitar redirecionamento (que aciona bloqueio do Akamai)
-  const url = `https://www.magazineluiza.com.br/busca/${encodeURIComponent(query.replace(/\s+/g, "+"))}/`;
-  const html = await fetchHtml(url);
-  if (!html) return [];
-  const out: ScrapedProduct[] = [];
-  // Magalu usa Next.js __NEXT_DATA__ com produtos em JSON
-  const nextM = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-  if (nextM) {
-    try {
-      const data = JSON.parse(nextM[1]);
-      const list = findProducts(data);
-      for (const p of list) {
-        if (out.length >= max) break;
-        out.push({ ...p, query });
-      }
-    } catch {
-      /* fallthrough */
-    }
-  }
-  log.debug(`Magalu "${query}" -> ${out.length} itens`);
-  return out;
+// A busca de www.magazineluiza.com.br é barrada pelo Akamai (403 em HTTP e em
+// browser headless; o header akamai-grn denuncia o edge). Duas vitrines servem o
+// MESMO catálogo e os MESMOS preços pelo mesmo __NEXT_DATA__, sem Akamai —
+// preços conferidos produto a produto entre elas. Links são reescritos para o
+// domínio canônico.
+const MAGALU_ORIGIN = "https://www.magazineluiza.com.br";
+
+interface MagaluEndpoint {
+  nome: string;
+  url: (query: string) => string;
 }
 
-// busca recursiva por nós que parecem produto no JSON do Next
-export function findProducts(node: unknown, acc: Omit<ScrapedProduct, "query">[] = []): Omit<ScrapedProduct, "query">[] {
-  if (acc.length >= 40 || node == null || typeof node !== "object") return acc;
-  const o = node as Record<string, unknown>;
+// Ordem de preferência: clube roda em nginx puro (sem Akamai) e é mais estável
+// no volume por busca; magazinevoce fica como redundância.
+export const MAGALU_ENDPOINTS: MagaluEndpoint[] = [
+  {
+    nome: "clube",
+    url: (q) => `https://clube.magazineluiza.com.br/clubedosmagalus/busca/${magaluSlug(q)}/`,
+  },
+  {
+    nome: "magazinevoce",
+    url: (q) => `https://www.magazinevoce.com.br/magazinevoce/busca/${magaluSlug(q)}/`,
+  },
+];
+
+export async function crawlMagalu(query: string, max: number): Promise<ScrapedProduct[]> {
+  for (const endpoint of MAGALU_ENDPOINTS) {
+    const html = await fetchHtml(endpoint.url(query));
+    const data = html ? extractNextData(html) : null;
+    const out = data
+      ? findProducts(data)
+          .slice(0, max)
+          .map((p) => ({ ...p, query }))
+      : [];
+    if (out.length > 0) {
+      log.debug(`Magalu[${endpoint.nome}] "${query}" -> ${out.length} itens`);
+      return out;
+    }
+    log.debug(`Magalu[${endpoint.nome}] "${query}" -> 0, tentando próxima vitrine`);
+  }
+  return [];
+}
+
+// Formato de preço do Magalu: strings em REAIS ("1289.00"), onde
+// bestPrice = preço à vista/Pix, fullPrice = preço normal e price = preço "de".
+interface MagaluPrice {
+  price?: unknown;
+  fullPrice?: unknown;
+  bestPrice?: unknown;
+  listPrice?: unknown;
+}
+
+function toProduct(o: Record<string, unknown>): Omit<ScrapedProduct, "query"> | null {
+  const priceObj = o.price as MagaluPrice | undefined;
+  if (!priceObj || typeof priceObj !== "object") return null;
   const title = o.title ?? o.name;
-  const priceObj = o.price as Record<string, unknown> | undefined;
-  const price = priceObj?.bestPrice ?? o.bestPrice ?? o.price;
-  const listRaw = priceObj?.listPrice ?? priceObj?.fullPrice ?? o.listPrice;
-  const id = o.id ?? o.productId ?? o.sku;
-  
-  if (typeof title === "string" && (typeof price === "number" || typeof price === "string") && id != null) {
-    const n = typeof price === "number" ? price / 100 : Number(String(price).replace(/[^\d]/g, "")) / 100;
-    if (Number.isFinite(n) && n > 0) {
-      // Extrai imagem de forma robusta suportando strings, arrays e objetos aninhados
-      const img = (o.image ?? o.images ?? (o.media as Record<string, unknown>)?.path ?? o.imageUrl) as unknown;
-      let imageUrl: string | undefined;
-      if (typeof img === "string") {
-        imageUrl = img;
-      } else if (Array.isArray(img) && img.length > 0) {
-        const first = img[0];
-        if (typeof first === "string") {
-          imageUrl = first;
-        } else if (first && typeof first === "object") {
-          imageUrl = (first.path ?? first.url ?? first.imageUrl) as string | undefined;
-        }
-      } else if (img && typeof img === "object") {
-        imageUrl = ((img as any).path ?? (img as any).url ?? (img as any).imageUrl) as string | undefined;
-      }
+  const id = o.id ?? o.productId ?? o.variationId ?? o.sku;
+  if (typeof title !== "string" || !title.trim() || id == null) return null;
+  if (o.available === false) return null;
 
-      // Garante imagem absoluta caso seja protocol-relative ou relativa
-      if (imageUrl && imageUrl.startsWith("//")) {
-        imageUrl = "https:" + imageUrl;
-      } else if (imageUrl && imageUrl.startsWith("/")) {
-        imageUrl = "https://www.magazineluiza.com.br" + imageUrl;
-      }
+  const price = parseMoney(priceObj.bestPrice ?? priceObj.fullPrice ?? priceObj.price);
+  if (!Number.isFinite(price) || price <= 0) return null;
 
-      // Constrói URL do produto canônica robustamente caso a original seja nula ou incompleta
-      let rawUrl = o.url ?? o.path ?? o.slug ?? o.canonical;
-      if (typeof rawUrl !== "string") {
-        rawUrl = `/p/${id}/`;
-      }
+  // Preço "de" = maior entre os preços de referência, se acima do praticado.
+  const refs = [priceObj.price, priceObj.fullPrice, priceObj.listPrice]
+    .map(parseMoney)
+    .filter((n) => Number.isFinite(n) && n > price);
+  const listPrice = refs.length > 0 ? Math.max(...refs) : undefined;
 
-      const lp = typeof listRaw === "number" ? listRaw / 100 : typeof listRaw === "string" ? Number(listRaw.replace(/[^\d]/g, "")) / 100 : NaN;
-      acc.push({
-        source: "magalu",
-        externalId: String(id),
-        title: decodeEntities(title),
-        url: absoluteUrl(rawUrl, "https://www.magazineluiza.com.br"),
-        image: imageUrl,
-        price: n,
-        listPrice: Number.isFinite(lp) && lp > n ? lp : undefined,
-        imageSource: "real",
-      });
+  // Imagem vem com placeholder de dimensão ("{w}x{h}") no path do CDN.
+  let image = typeof o.image === "string" ? o.image : undefined;
+  if (image) {
+    image = image.replace("{w}x{h}", "800x560");
+    if (image.startsWith("//")) image = `https:${image}`;
+    else if (image.startsWith("/")) image = MAGALU_ORIGIN + image;
+  }
+
+  // "/magazinevoce/<slug>/p/<id>/..." -> canônico no domínio do Magalu.
+  const rawPath = typeof o.url === "string" ? o.url : typeof o.path === "string" ? o.path : `/p/${id}/`;
+  const canonical = rawPath.replace(/^\/magazinevoce(?=\/)/, "");
+
+  return {
+    source: "magalu",
+    externalId: String(id),
+    title: decodeEntities(title.trim()),
+    url: absoluteUrl(canonical, MAGALU_ORIGIN),
+    image,
+    price,
+    listPrice,
+    imageSource: "real",
+  };
+}
+
+// Onde cada vitrine guarda a lista de produtos no __NEXT_DATA__.
+const MAGALU_PRODUCT_PATHS = [
+  (d: any) => d?.props?.pageProps?.dataResponse?.searchProducts?.data?.products, // clube
+  (d: any) => d?.props?.pageProps?.data?.search?.products, // magazinevoce
+];
+
+// Percorre o __NEXT_DATA__ atrás da lista de produtos. Caminhos conhecidos
+// primeiro; varredura recursiva só como rede de segurança, e restrita a nós com
+// o objeto `price` do Magalu — assim banners/carrosséis com números soltos não
+// entram mais como "produto" com preço inventado.
+export function findProducts(node: unknown, acc: Omit<ScrapedProduct, "query">[] = []): Omit<ScrapedProduct, "query">[] {
+  if (acc.length === 0) {
+    for (const pick of MAGALU_PRODUCT_PATHS) {
+      const known = pick(node);
+      if (!Array.isArray(known)) continue;
+      for (const raw of known) {
+        if (acc.length >= 60) break;
+        const p = raw && typeof raw === "object" ? toProduct(raw as Record<string, unknown>) : null;
+        if (p) acc.push(p);
+      }
+      if (acc.length > 0) return acc;
     }
   }
+  if (acc.length >= 60 || node == null || typeof node !== "object") return acc;
+  if (Array.isArray(node)) {
+    for (const v of node) findProducts(v, acc);
+    return acc;
+  }
+  const o = node as Record<string, unknown>;
+  const p = toProduct(o);
+  if (p) acc.push(p);
   for (const v of Object.values(o)) {
-    if (typeof v === "object") findProducts(v, acc);
+    if (v !== null && typeof v === "object") findProducts(v, acc);
   }
   return acc;
 }

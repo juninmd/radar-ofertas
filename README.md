@@ -16,9 +16,17 @@ crawl (ML/Amazon/Magalu) ──▶ price_history ──▶ detecção de oferta 
                                                               IA (LiteLLM) + Telegram
 ```
 
-1. **Coleta** — busca cada termo (`CRAWL_QUERIES`) em cada fonte. Sites têm
-   anti-bot agressivo; quando o HTML público é bloqueado, cai num **catálogo
-   demo determinístico** (`ALLOW_DEMO_FALLBACK`) para manter o pipeline vivo.
+1. **Coleta** — busca cada termo (`CRAWL_QUERIES`) em cada fonte. As fontes
+   rodam **em paralelo** (`CRAWL_CONCURRENCY`), cada uma com throttle próprio;
+   sites com anti-bot agressivo caem para um crawler de browser. O resultado
+   passa por um filtro de sanidade (preço inválido/absurdo, título degenerado,
+   duplicados) antes de virar histórico.
+   - **Magalu**: `magazineluiza.com.br` é barrado pelo Akamai, então a coleta usa
+     `clube.magazineluiza.com.br` (nginx puro, sem anti-bot) com
+     `magazinevoce.com.br` como redundância — mesmo catálogo e mesmos preços,
+     conferidos produto a produto. Os links são reescritos para o domínio canônico.
+   - **zoom / buscape**: comparadores — 1 GET devolve ~30 produtos já com o menor
+     preço de mercado entre as lojas parceiras.
 2. **Histórico** — cada execução grava um ponto na série temporal do produto.
 3. **Detecção** — com ≥`MIN_HISTORY_POINTS`, compara o preço atual com média e
    desvio-padrão. É oferta se `z ≤ -Z_THRESHOLD` **ou** desconto `≥ MIN_DISCOUNT_PCT`.
@@ -26,7 +34,9 @@ crawl (ML/Amazon/Magalu) ──▶ price_history ──▶ detecção de oferta 
    afinidade sobe nas categorias/keywords que você **curtiu** (ex.: curtiu whey
    ⇒ próximas promoções de whey pontuam mais ⇒ mais chance de notificar).
 5. **Notificação** — se `score ≥ NOTIFY_SCORE`, gera um comentário curto via
-   **LiteLLM** e envia ao **Telegram** com botões 👍/👎 inline.
+   **LiteLLM** e envia ao **Telegram** com botões 👍/👎 inline. O ciclo posta no
+   máximo `MAX_NOTIFICATIONS_PER_CYCLE` mensagens, priorizando o maior desconto
+   anunciado; as demais ofertas ficam gravadas no histórico e no dashboard.
 
 ## Rodar local
 
@@ -69,4 +79,5 @@ bun test   # detecção de oferta, recomendação, classificação
 ## Variáveis principais
 
 Veja `.env.example`. Destaques: `CRAWL_QUERIES`, `CRAWL_SOURCES`,
-`Z_THRESHOLD`, `MIN_DISCOUNT_PCT`, `NOTIFY_SCORE`, `LITELLM_MODEL`.
+`CRAWL_CONCURRENCY`, `Z_THRESHOLD`, `MIN_DISCOUNT_PCT`, `NOTIFY_SCORE`,
+`LITELLM_MODEL`.

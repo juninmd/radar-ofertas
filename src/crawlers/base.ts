@@ -75,6 +75,41 @@ export async function fetchJson<T = any>(url: string, timeoutMs = 12000, extraHe
   }
 }
 
+// Extrai e parseia o payload __NEXT_DATA__ de páginas Next.js (Magalu, Zoom,
+// Buscapé, Kabum). Retorna null se ausente ou inválido.
+export function extractNextData(html: string): unknown | null {
+  const m = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!m) return null;
+  try {
+    return JSON.parse(m[1]);
+  } catch {
+    return null;
+  }
+}
+
+// Converte valor monetário para reais SEM adivinhar escala. Aceita number já em
+// reais, string US ("1289.00") e string BR ("1.289,00"). Retorna NaN se não for
+// um valor monetário reconhecível — nunca divide por 100 no escuro (era a causa
+// de preços do Magalu virarem centavos).
+export function parseMoney(raw: unknown): number {
+  if (typeof raw === "number") return Number.isFinite(raw) ? raw : NaN;
+  if (typeof raw !== "string") return NaN;
+  const s = raw.trim().replace(/^R\$\s*/i, "").replace(/\s/g, "");
+  if (!s) return NaN;
+  // BR: separador decimal vírgula ("1.289,00" | "1289,00")
+  if (/,\d{1,2}$/.test(s)) return Number(s.replace(/\./g, "").replace(",", "."));
+  // US: ponto decimal ("1289.00") ou inteiro ("1289")
+  if (/^\d+(\.\d{1,2})?$/.test(s)) return Number(s);
+  // milhar com ponto sem decimais ("1.289")
+  if (/^\d{1,3}(\.\d{3})+$/.test(s)) return Number(s.replace(/\./g, ""));
+  return NaN;
+}
+
+// Query no formato de path do Magalu: espaços viram "+" literal (não %2B).
+export function magaluSlug(query: string): string {
+  return encodeURIComponent(query.trim()).replace(/%20/g, "+");
+}
+
 export function parseBrl(raw: string): number {
   // "R$ 1.234,56" -> 1234.56
   const m = raw.replace(/\s/g, "").match(/([\d.]+,\d{2})/);

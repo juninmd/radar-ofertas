@@ -35,7 +35,11 @@ export class DealService {
     return { direction: 'stable', strength: 0 };
   }
 
-  async processScrapedProduct(p: any) {
+  /**
+   * @param allowNotify quando false, a oferta é gravada mas não vai ao Telegram
+   *   (nem gasta chamada de IA). Usado pelo teto de notificações por ciclo.
+   */
+  async processScrapedProduct(p: any, allowNotify = true) {
     const category = classify(p.title);
     const productId = this.productRepo.upsert(p, category);
     this.priceRepo.insert(productId, p.price);
@@ -43,14 +47,15 @@ export class DealService {
     const stats = this.priceRepo.getStats(productId);
     const evalResult = evaluate(p.price, stats, p.title, category, p.listPrice);
 
-    if (!evalResult.isDeal) return { dealId: null, notified: false };
+    if (!evalResult.isDeal) return { dealId: null, notified: false, notifyAttempted: false };
     if (this.dealRepo.hasDealForProduct(productId)) {
       log.debug(`oferta repetida ignorada: ${p.source}:${p.externalId}`);
-      return { dealId: null, notified: false };
+      return { dealId: null, notified: false, notifyAttempted: false };
     }
 
     // Evita spam: não renotifica o mesmo produto em <12h.
     const shouldNotify =
+      allowNotify &&
       evalResult.score >= config.notifyScore &&
       !this.dealRepo.wasNotifiedRecently(productId, 12);
     let aiComment: string | null = null;
@@ -96,7 +101,9 @@ export class DealService {
       }
     }
 
-    return { dealId, notified };
+    // notifyAttempted conta o consumo real de orçamento do ciclo (chamada de IA +
+    // envio). Contar só sucesso deixaria o teto inerte quando o Telegram falha.
+    return { dealId, notified, notifyAttempted: shouldNotify };
   }
 
   /** Registra voto (👍/👎) vindo do dashboard ou do Telegram. */

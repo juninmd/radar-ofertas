@@ -5,7 +5,7 @@ import * as cheerio from "cheerio";
 import { log } from "../log.ts";
 import type { ScrapedProduct } from "../types.ts";
 import { cleanMlUrl, decodeEntities, parseBrl } from "./base.ts";
-import { findProducts } from "./sites.ts";
+import { MAGALU_ENDPOINTS, findProducts } from "./sites.ts";
 
 puppeteerExtra.use(StealthPlugin() as any);
 
@@ -15,8 +15,20 @@ const DESKTOP_UA =
 const BLOCKED_RESOURCE_TYPES = new Set<string>(['image', 'stylesheet', 'font', 'media']);
 
 let browserInstance: Browser | null = null;
+// Com fontes coletadas em paralelo, dois crawlers podem pedir o browser ao mesmo
+// tempo; sem este latch cada um subiria um Chrome próprio.
+let launching: Promise<Browser | null> | null = null;
 
 async function getBrowser(): Promise<Browser | null> {
+  if (browserInstance) return browserInstance;
+  if (launching) return launching;
+  launching = launchBrowser().finally(() => {
+    launching = null;
+  });
+  return launching;
+}
+
+async function launchBrowser(): Promise<Browser | null> {
   if (!browserInstance) {
     try {
       const isHeadless = process.env.HEADLESS !== "false";
@@ -455,13 +467,13 @@ export async function crawlAliExpressBrowser(query: string, max: number): Promis
 }
 
 // ── Magazine Luiza ──────────────────────────────────────────────────────────
-// Next.js: produtos no __NEXT_DATA__. Se a rota direta de busca for bloqueada,
-// tentamos o fluxo interativo pela home (digitar e buscar) para herdar cookies.
+// Fallback do crawler HTTP: mesmas vitrines (a busca de magazineluiza.com.br
+// responde 403 do Akamai também em browser headless).
 export async function crawlMagaluBrowser(query: string, max: number): Promise<ScrapedProduct[]> {
   const browser = await getBrowser();
   if (!browser) return [];
 
-  const url = `https://www.magazineluiza.com.br/busca/${encodeURIComponent(query)}/`;
+  const url = MAGALU_ENDPOINTS[0].url(query);
   let page: Page | null = null;
 
   try {
@@ -484,22 +496,11 @@ export async function crawlMagaluBrowser(query: string, max: number): Promise<Sc
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
 
-    let html = await page.content();
-    
-    // Se bloqueado, executa o fallback de interação real pela homepage
-    if (!html || html.includes("Não é possível acessar a página") || !html.includes("__NEXT_DATA__")) {
-      log.debug(`Magalu browser "/busca" bloqueado. Tentando fluxo interativo pela home para "${query}"...`);
-      await page.goto("https://www.magazineluiza.com.br/", { waitUntil: "domcontentloaded", timeout: 20000 });
-      await page.waitForSelector("#header-search-input", { timeout: 10000 });
-      await page.click("#header-search-input");
-      await page.type("#header-search-input", query, { delay: 100 });
-      await page.waitForSelector('[data-testid="input-icon-end"]', { timeout: 5000 });
-      await page.click('[data-testid="input-icon-end"]');
-      await new Promise((resolve) => setTimeout(resolve, 6000));
-      html = await page.content();
+    const html = await page.content();
+    if (!html || html.length < 5000 || html.includes("Não é possível acessar a página")) {
+      log.debug(`Magalu browser "${query}" -> bloqueado`);
+      return [];
     }
-
-    if (!html || html.length < 5000) return [];
 
     const nextM = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
     if (!nextM) {
