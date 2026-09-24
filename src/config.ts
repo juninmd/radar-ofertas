@@ -72,7 +72,7 @@ export const config = {
     enabled: bool("LITELLM_ENABLED", true),
     base: env("LITELLM_API_BASE", "http://litellm.ai.svc.cluster.local:4000/v1"),
     apiKey: env("LITELLM_API_KEY"),
-    model: env("LITELLM_MODEL", "cloud/llama-8b"),
+    model: env("LITELLM_MODEL", "cloud/auto"),
     timeoutMs: num("LITELLM_TIMEOUT_MS", 45000),
   },
 } as const;
