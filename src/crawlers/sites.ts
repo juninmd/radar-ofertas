@@ -87,18 +87,13 @@ export async function crawlMercadoLivre(query: string, max: number): Promise<Scr
   return out;
 }
 
-export async function crawlAmazon(query: string, max: number): Promise<ScrapedProduct[]> {
-  const url = `https://www.amazon.com.br/s?k=${encodeURIComponent(query)}`;
-  const html = await fetchHtml(url);
-  if (!html || html.length < 5000) {
-    log.debug(`Amazon "${query}" bloqueado ou sem dados (${html?.length || 0} bytes)`);
-    return [];
-  }
+export function parseAmazonProducts(html: string, query: string, max: number): ScrapedProduct[] {
+  if (!html || html.length < 50) return [];
   const out: ScrapedProduct[] = [];
 
   // Try multiple block delimiters for robustness
   let blocks = html.split('data-asin="').slice(1);
-  if (blocks.length < 2) blocks = html.split('data-component-type="s-search-result"').slice(1);
+  if (blocks.length === 0) blocks = html.split('data-component-type="s-search-result"').slice(1);
 
   for (const b of blocks) {
     if (out.length >= max) break;
@@ -112,18 +107,28 @@ export async function crawlAmazon(query: string, max: number): Promise<ScrapedPr
 
     // Try multiple title patterns
     let titleM = b.match(/<span class="a-size-(?:medium|base-plus)[^"]*"[^>]*>([^<]{6,})</);
-    if (!titleM) titleM = b.match(/<h2[^>]*>[\s\S]*?<a[^>]*>([^<]{6,})</);
+    if (!titleM) titleM = b.match(/<h2[^>]*>[\s\S]*?<a[^>]*>(?:<span[^>]*>)?([^<]{6,})(?:<\/span>)?/);
     if (!titleM) titleM = b.match(/<span[^>]*class="[^"]*title[^"]*"[^>]*>([^<]{6,})</);
 
     // Try multiple price patterns
     let priceM = b.match(/a-price-whole">([\d.]+)<\/span><span class="a-price-fraction">(\d{2})/);
-    if (!priceM) priceM = b.match(/data-a-price="([\d.]+)"/);
-    if (!priceM) priceM = b.match(/price["\s]*:?\s*["\']?([\d.,]+)["\']?/i);
+    let priceRaw = "";
+    if (priceM) {
+      priceRaw = `${priceM[1]},${priceM[2]}`;
+    } else {
+      const dataPriceM = b.match(/data-a-price="([\d.]+)"/);
+      if (dataPriceM) {
+        priceRaw = dataPriceM[1].includes(",") ? dataPriceM[1] : `${dataPriceM[1]},00`;
+      } else {
+        const genericPriceM = b.match(/price["\s]*:?\s*["\']?([\d.,]+)["\']?/i);
+        if (genericPriceM) {
+          priceRaw = genericPriceM[1].includes(",") ? genericPriceM[1] : `${genericPriceM[1]},00`;
+        }
+      }
+    }
 
-    if (!titleM) continue;
-    const price = priceM
-      ? parseBrl(typeof priceM[1] === "string" && priceM[1].includes(",") ? priceM[1] : `${priceM[1]},00`)
-      : NaN;
+    if (!titleM || !priceRaw) continue;
+    const price = parseBrl(priceRaw);
     if (!Number.isFinite(price) || price <= 0) continue;
 
     // preço "de" (riscado) na Amazon: <span class="a-price a-text-price"...><span class="a-offscreen">R$ X</span>
@@ -150,6 +155,17 @@ export async function crawlAmazon(query: string, max: number): Promise<ScrapedPr
       imageSource: "real",
     });
   }
+  return out;
+}
+
+export async function crawlAmazon(query: string, max: number): Promise<ScrapedProduct[]> {
+  const url = `https://www.amazon.com.br/s?k=${encodeURIComponent(query)}`;
+  const html = await fetchHtml(url);
+  if (!html || html.length < 5000) {
+    log.debug(`Amazon "${query}" bloqueado ou sem dados (${html?.length || 0} bytes)`);
+    return [];
+  }
+  const out = parseAmazonProducts(html, query, max);
   log.debug(`Amazon "${query}" -> ${out.length} itens (${html.length} bytes)`);
   return out;
 }

@@ -30,6 +30,7 @@ export interface PriceStats {
   std: number;
   min: number;
   max: number;
+  min30d?: number;
 }
 
 export interface DealEval {

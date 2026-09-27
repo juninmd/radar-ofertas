@@ -70,4 +70,12 @@ describe("evaluate (detecção de oferta)", () => {
     expect(r.isDeal).toBe(true);
     expect(r.avg).toBe(100);
   });
+
+  test("menor preço dos últimos 30 dias dispara com desconto moderado (>= 8%)", () => {
+    // média 100, std 30 (z = -0.33 não passaria de -1.2, disc = 10% < 12%), mas é o menor dos 30 dias (90 <= min30d)
+    const st: PriceStats = { avg: 100, std: 30, count: 20, min: 90, max: 130, min30d: 90 };
+    const r = evaluate(90, st, "Whey 900g", "suplementos");
+    expect(r.isDeal).toBe(true);
+    expect(r.reasons.some((x) => x.startsWith("menor-preco-recente"))).toBe(true);
+  });
 });
