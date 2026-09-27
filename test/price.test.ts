@@ -1,6 +1,6 @@
 import { expect, test, describe } from "bun:test";
 import { parseMoney, magaluSlug } from "../src/crawlers/base.ts";
-import { findProducts } from "../src/crawlers/sites.ts";
+import { findProducts, parseAmazonProducts } from "../src/crawlers/sites.ts";
 import { sanitize } from "../src/crawlers/index.ts";
 
 describe("parseMoney", () => {
@@ -164,5 +164,25 @@ describe("sanitize", () => {
 
   test("preço muito baixo (bug de precificação) é preservado", () => {
     expect(sanitize([{ ...base, price: 1.99 }])).toHaveLength(1);
+  });
+});
+
+describe("parseAmazonProducts", () => {
+  test("extrai valor com centavos exatos e preço-de riscado", () => {
+    const html = `
+      <div data-asin="B07NGL3FDY">
+        <h2><a href="/dp/B07NGL3FDY"><span>Whey Protein Concentrado Dux 900g Cookies</span></a></h2>
+        <span class="a-price-whole">192</span><span class="a-price-fraction">68</span>
+        <span class="a-price a-text-price"><span class="a-offscreen">R$ 229,90</span></span>
+        <img class="s-image" src="https://m.media-amazon.com/images/I/whey.jpg" />
+      </div>
+    `;
+    const res = parseAmazonProducts(html, "whey protein", 5);
+    expect(res).toHaveLength(1);
+    expect(res[0].externalId).toBe("B07NGL3FDY");
+    expect(res[0].price).toBe(192.68);
+    expect(res[0].listPrice).toBe(229.9);
+    expect(res[0].title).toBe("Whey Protein Concentrado Dux 900g Cookies");
+    expect(res[0].url).toBe("https://www.amazon.com.br/dp/B07NGL3FDY");
   });
 });

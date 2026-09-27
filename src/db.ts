@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS price_history (
   captured_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_price_product ON price_history(product_id);
+CREATE INDEX IF NOT EXISTS idx_price_product_captured ON price_history(product_id, captured_at DESC);
 
 CREATE TABLE IF NOT EXISTS deals (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -123,20 +124,48 @@ export function insertPrice(productId: number, price: number) {
 
 const statsStmt = db.query(`
 SELECT COUNT(*) c, AVG(price) avg, MIN(price) min, MAX(price) max
-FROM price_history WHERE product_id = $pid
+FROM price_history
+WHERE product_id = $pid
+  AND captured_at >= datetime('now', '-' || $days || ' days')
 `);
-const pricesStmt = db.query(
-  "SELECT price FROM price_history WHERE product_id = $pid",
-);
 
-export function priceStats(productId: number): PriceStats {
-  const r = statsStmt.get({ $pid: productId }) as {
+const allTimeMinStmt = db.query(`
+SELECT MIN(price) min FROM price_history WHERE product_id = $pid
+`);
+
+const pricesStmt = db.query(`
+SELECT price FROM price_history
+WHERE product_id = $pid
+  AND captured_at >= datetime('now', '-' || $days || ' days')
+`);
+
+export function priceStats(productId: number, days = config.priceHistoryDays): PriceStats {
+  let r = statsStmt.get({ $pid: productId, $days: days }) as {
     c: number;
     avg: number | null;
     min: number | null;
     max: number | null;
   };
-  const rows = pricesStmt.all({ $pid: productId }) as { price: number }[];
+  let rows = pricesStmt.all({ $pid: productId, $days: days }) as { price: number }[];
+
+  // Se a janela recente tiver poucas leituras, faz fallback para o histórico total
+  if (r.c < config.minHistoryPoints) {
+    const allStats = db.query(`
+      SELECT COUNT(*) c, AVG(price) avg, MIN(price) min, MAX(price) max
+      FROM price_history WHERE product_id = $pid
+    `).get({ $pid: productId }) as {
+      c: number;
+      avg: number | null;
+      min: number | null;
+      max: number | null;
+    };
+    if (allStats.c >= r.c) {
+      r = allStats;
+      rows = db.query("SELECT price FROM price_history WHERE product_id = $pid").all({ $pid: productId }) as { price: number }[];
+    }
+  }
+
+  const allTime = allTimeMinStmt.get({ $pid: productId }) as { min: number | null };
   const avg = r.avg ?? 0;
   const variance =
     rows.length > 1
@@ -146,8 +175,9 @@ export function priceStats(productId: number): PriceStats {
     count: r.c,
     avg,
     std: Math.sqrt(variance),
-    min: r.min ?? 0,
+    min: r.min ?? (allTime?.min ?? 0),
     max: r.max ?? 0,
+    min30d: r.min ?? (allTime?.min ?? 0),
   };
 }
 

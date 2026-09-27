@@ -36,6 +36,10 @@ export function evaluate(
     return { isDeal: false, price, avg, discountPct, zscore, score: 0, reasons: ["historico-insuficiente"] };
   }
 
+  if (price >= avg) {
+    return { isDeal: false, price, avg, discountPct, zscore, score: 0, reasons: ["acima-da-media"] };
+  }
+
   let isDeal = false;
   if (zscore <= -config.zThreshold) {
     isDeal = true;
@@ -45,8 +49,10 @@ export function evaluate(
     isDeal = true;
     reasons.push(`desconto=${discountPct.toFixed(1)}% (>=${config.minDiscountPct}%)`);
   }
-  if (price >= avg) {
-    return { isDeal: false, price, avg, discountPct, zscore, score: 0, reasons: ["acima-da-media"] };
+  // Menor preço recente (30-60 dias) com desconto mínimo razoável (>= 8%)
+  if (stats.min30d && stats.min30d > 0 && price <= stats.min30d + 0.01 && discountPct >= 8) {
+    isDeal = true;
+    reasons.push(`menor-preco-recente: R$ ${price.toFixed(2)} (desconto=${discountPct.toFixed(1)}%)`);
   }
 
   // força do desconto normalizada 0..1 (satura em 40%)

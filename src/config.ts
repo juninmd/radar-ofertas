@@ -42,6 +42,7 @@ export const config = {
 
   // detecção de oferta
   minHistoryPoints: num("MIN_HISTORY_POINTS", 3),
+  priceHistoryDays: num("PRICE_HISTORY_DAYS", 60), // janela móvel (dias) para cálculo de média e estatísticas
   zThreshold: num("Z_THRESHOLD", 1.2), // preço < média - z*desvio
   minDiscountPct: num("MIN_DISCOUNT_PCT", 12), // ou desconto >= % sobre a média
   notifyScore: num("NOTIFY_SCORE", 0.5), // score combinado mínimo p/ notificar
