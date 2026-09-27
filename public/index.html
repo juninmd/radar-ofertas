@@ -3,206 +3,447 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Radar de Ofertas</title>
+    <title>Radar de Ofertas | Promoções Consolidadas</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       :root {
-        --bg: #f7f8fa;
+        --bg: #f8fafc;
+        --bg-grad: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
+                   radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.04) 0%, transparent 40%);
         --panel: #ffffff;
-        --panel-2: #f1f3f5;
-        --line: #e6e8eb;
-        --txt: #16181d;
-        --muted: #6b7280;
-        --brand: #4f46e5;
-        --brand-soft: #eef0ff;
-        --green: #15803d;
-        --green-soft: #e7f6ec;
-        --red: #dc2626;
-        --red-soft: #fdecec;
-        --amber: #b45309;
-        --radius: 16px;
-        --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px -12px rgba(16,24,40,.18);
+        --panel-2: #f1f5f9;
+        --panel-glass: rgba(255, 255, 255, 0.85);
+        --line: #e2e8f0;
+        --line-soft: #f1f5f9;
+        --txt: #0f172a;
+        --muted: #64748b;
+        --brand: #6366f1;
+        --brand-glow: rgba(99, 102, 241, 0.25);
+        --brand-soft: #eef2ff;
+        --green: #10b981;
+        --green-soft: #ecfdf5;
+        --red: #ef4444;
+        --red-soft: #fef2f2;
+        --amber: #f59e0b;
+        --amber-soft: #fffbeb;
+        --radius: 18px;
+        --radius-sm: 10px;
+        --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.04);
+        --shadow-md: 0 4px 20px -4px rgba(15, 23, 42, 0.07);
+        --shadow-lg: 0 16px 36px -8px rgba(15, 23, 42, 0.12);
       }
       html.dark {
-        --bg: #0b0d12;
-        --panel: #14171e;
-        --panel-2: #1b1f28;
-        --line: #262b36;
-        --txt: #eef1f6;
-        --muted: #9aa3b2;
-        --brand: #7c83ff;
-        --brand-soft: #1c2030;
-        --green: #4ade80;
-        --green-soft: #14241a;
+        --bg: #090b10;
+        --bg-grad: radial-gradient(circle at 10% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 50%),
+                   radial-gradient(circle at 90% 90%, rgba(236, 72, 153, 0.08) 0%, transparent 50%);
+        --panel: #11141c;
+        --panel-2: #191d28;
+        --panel-glass: rgba(17, 20, 28, 0.85);
+        --line: #222736;
+        --line-soft: #191d28;
+        --txt: #f8fafc;
+        --muted: #94a3b8;
+        --brand: #818cf8;
+        --brand-glow: rgba(129, 140, 248, 0.3);
+        --brand-soft: #1e1b4b;
+        --green: #34d399;
+        --green-soft: #064e3b;
         --red: #f87171;
-        --red-soft: #281517;
+        --red-soft: #450a0a;
         --amber: #fbbf24;
-        --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 30px -14px rgba(0,0,0,.6);
+        --amber-soft: #451a03;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+        --shadow-md: 0 4px 20px -4px rgba(0, 0, 0, 0.5);
+        --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.7);
       }
       * { box-sizing: border-box; }
-      body { margin: 0; font-family: Inter, system-ui, sans-serif; background: var(--bg); color: var(--txt); -webkit-font-smoothing: antialiased; }
-      a { color: inherit; }
-      ::-webkit-scrollbar { width: 10px; height: 10px; }
-      ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 10px; }
+      body {
+        margin: 0;
+        font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+        background: var(--bg);
+        background-image: var(--bg-grad);
+        color: var(--txt);
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: inherit; text-decoration: none; }
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
 
       header {
-        position: sticky; top: 0; z-index: 40;
-        backdrop-filter: blur(10px);
-        background: color-mix(in srgb, var(--bg) 82%, transparent);
+        position: sticky; top: 0; z-index: 50;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        background: var(--panel-glass);
         border-bottom: 1px solid var(--line);
+        box-shadow: var(--shadow-sm);
       }
-      .bar { max-width: 1280px; margin: 0 auto; padding: 14px 22px; display: flex; align-items: center; gap: 18px; }
-      .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; letter-spacing: -.02em; }
-      .brand .dot { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, var(--brand), #ec4899); display: grid; place-items: center; color: #fff; }
-      .kpis { display: flex; gap: 18px; margin-left: 6px; }
-      .kpi { font-size: 12px; color: var(--muted); }
-      .kpi b { display: block; font-size: 16px; color: var(--txt); font-weight: 700; }
-      .right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+      .bar {
+        max-width: 1360px; margin: 0 auto; padding: 12px 24px;
+        display: flex; align-items: center; gap: 20px;
+      }
+      .brand {
+        display: flex; align-items: center; gap: 10px;
+        font-weight: 800; font-size: 19px; letter-spacing: -0.03em;
+      }
+      .brand .logo-icon {
+        width: 34px; height: 34px; border-radius: 10px;
+        background: linear-gradient(135deg, #6366f1, #ec4899);
+        display: grid; place-items: center; color: #fff;
+        box-shadow: 0 4px 12px var(--brand-glow);
+      }
+      .kpis {
+        display: flex; gap: 14px; margin-left: 12px;
+      }
+      .kpi-card {
+        background: var(--panel-2);
+        padding: 5px 12px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--line);
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+      }
+      .kpi-card .val {
+        font-size: 15px; font-weight: 800; color: var(--txt);
+        font-family: 'JetBrains Mono', monospace;
+      }
+      .kpi-card .lbl {
+        font-size: 11px; font-weight: 600; color: var(--muted);
+        text-transform: lowercase;
+      }
+
+      .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
       button, .btn {
         font-family: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--panel);
-        color: var(--txt); border-radius: 10px; padding: 9px 14px; font-size: 13px; font-weight: 600;
-        display: inline-flex; align-items: center; gap: 7px; transition: .15s;
+        color: var(--txt); border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; font-weight: 600;
+        display: inline-flex; align-items: center; gap: 7px; transition: all .15s ease;
       }
-      button:hover { border-color: var(--brand); }
-      .btn.brand { background: var(--brand); border-color: var(--brand); color: #fff; }
-      .btn.brand:hover { filter: brightness(1.08); }
-      .icon { padding: 9px; }
-
-      main { max-width: 1280px; margin: 0 auto; padding: 22px; }
-      .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
-      .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-      .chip { padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer; transition: .15s; }
-      .chip:hover { color: var(--txt); }
-      .chip.active { background: var(--brand); border-color: var(--brand); color: #fff; }
-      .grow { flex: 1; }
-      .search { position: relative; }
-      .search input, select.sort {
-        background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px;
-        color: var(--txt); font-size: 13px; font-family: inherit; outline: none;
+      button:hover, .btn:hover { border-color: var(--brand); transform: translateY(-1px); }
+      .btn.brand {
+        background: linear-gradient(135deg, var(--brand), #ec4899);
+        border: none; color: #fff;
+        box-shadow: 0 4px 14px var(--brand-glow);
       }
-      .search input { padding-left: 34px; width: 230px; }
-      .search i { position: absolute; left: 10px; top: 9px; color: var(--muted); }
+      .btn.brand:hover { filter: brightness(1.1); box-shadow: 0 6px 18px var(--brand-glow); }
+      .icon-btn { padding: 8px; border-radius: var(--radius-sm); }
 
-      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 18px; }
+      main { max-width: 1360px; margin: 0 auto; padding: 22px 24px 60px; }
 
-      .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow); transition: transform .18s, border-color .18s; animation: rise .4s ease backwards; }
-      .card:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--brand) 50%, var(--line)); }
-      @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
-      .thumb { position: relative; height: 180px; background: #fff; display: grid; place-items: center; padding: 14px; }
-      .thumb img { max-width: 100%; max-height: 100%; object-fit: contain; opacity: 0; transition: .3s; }
-      .thumb img.on { opacity: 1; }
-      .badge { position: absolute; top: 10px; left: 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: 4px 8px; border-radius: 7px; }
+      .toolbar {
+        display: flex; flex-direction: column; gap: 14px;
+        margin-bottom: 22px;
+      }
+      .filter-row {
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      }
+      .filter-title {
+        font-size: 11.5px; font-weight: 700; color: var(--muted);
+        text-transform: uppercase; letter-spacing: 0.05em; margin-right: 4px;
+      }
+      .chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+      .chip {
+        padding: 6px 12px; border-radius: 20px; border: 1px solid var(--line);
+        background: var(--panel); font-size: 12px; font-weight: 600; color: var(--muted);
+        cursor: pointer; transition: all .15s ease; display: inline-flex; align-items: center; gap: 5px;
+      }
+      .chip:hover { color: var(--txt); border-color: var(--brand); }
+      .chip.active {
+        background: var(--brand); border-color: var(--brand); color: #fff;
+        box-shadow: 0 2px 8px var(--brand-glow);
+      }
+      .chip .count {
+        background: rgba(0,0,0,0.12); padding: 1px 6px; border-radius: 10px;
+        font-size: 10.5px; font-family: 'JetBrains Mono', monospace;
+      }
+      .chip.active .count { background: rgba(255,255,255,0.25); }
+
+      .search-sort-bar {
+        display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+        padding-top: 4px;
+      }
+      .search-box { position: relative; flex: 1; max-width: 380px; min-width: 240px; }
+      .search-box input {
+        width: 100%; background: var(--panel); border: 1px solid var(--line);
+        border-radius: var(--radius-sm); padding: 9px 12px 9px 36px;
+        color: var(--txt); font-size: 13.5px; font-family: inherit; outline: none;
+        transition: border-color .15s ease;
+      }
+      .search-box input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-glow); }
+      .search-box i { position: absolute; left: 11px; top: 10px; color: var(--muted); pointer-events: none; }
+      select.sort-select {
+        background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-sm);
+        padding: 9px 14px; color: var(--txt); font-size: 13px; font-family: inherit; outline: none;
+        cursor: pointer;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+        gap: 20px;
+      }
+
+      .card {
+        background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+        overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-sm);
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+        animation: rise .35s ease backwards;
+      }
+      .card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-md);
+        border-color: color-mix(in srgb, var(--brand) 60%, var(--line));
+      }
+      @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+
+      .thumb-wrap {
+        position: relative; height: 195px; background: #ffffff;
+        display: grid; place-items: center; padding: 16px;
+        border-bottom: 1px solid var(--line-soft);
+      }
+      .thumb-wrap img {
+        max-width: 100%; max-height: 100%; object-fit: contain;
+        opacity: 0; transition: opacity .25s ease;
+      }
+      .thumb-wrap img.on { opacity: 1; }
+
+      .badge {
+        position: absolute; top: 10px; left: 10px; font-size: 10px; font-weight: 800;
+        text-transform: uppercase; letter-spacing: .04em; padding: 4px 8px; border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      }
       .s-mercadolivre { background: #ffe600; color: #2d3277; }
-      .s-amazon { background: #ff9900; color: #111; }
+      .s-amazon { background: #232f3e; color: #ff9900; }
       .s-magalu { background: #0086ff; color: #fff; }
+      .s-zoom, .s-buscape { background: #ffcb05; color: #111; }
+      .s-casasbahia { background: #e30613; color: #fff; }
+      .s-extra { background: #e02b20; color: #fff; }
+      .s-pontofrio { background: #00a868; color: #fff; }
       .s-kabum { background: #ff5500; color: #fff; }
       .s-aliexpress { background: #e62e04; color: #fff; }
       .s-shopee { background: #ee4d2d; color: #fff; }
-      .s-casasbahia { background: #e30613; color: #fff; }
-      .s-pontofrio, .s-extra { background: #00a868; color: #fff; }
-      .bug { position: absolute; top: 0; right: 0; background: var(--red); color: #fff; font-size: 10px; font-weight: 800; padding: 4px 9px; border-radius: 0 0 0 10px; display: flex; gap: 4px; align-items: center; }
 
-      .body { padding: 14px; display: flex; flex-direction: column; gap: 9px; flex: 1; }
-      .cat { font-size: 10.5px; font-weight: 700; color: var(--brand); text-transform: uppercase; letter-spacing: .04em; }
-      .title { font-size: 14px; font-weight: 600; line-height: 1.35; height: 2.7em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-      .prices { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-      .now { font-size: 21px; font-weight: 800; color: var(--green); }
-      .was { font-size: 13px; color: var(--muted); text-decoration: line-through; }
-      .off { margin-left: auto; background: var(--red-soft); color: var(--red); font-weight: 800; font-size: 12px; padding: 3px 8px; border-radius: 7px; }
-      .tags { display: flex; gap: 6px; flex-wrap: wrap; }
-      .tag { font-size: 10.5px; font-weight: 600; color: var(--muted); background: var(--panel-2); padding: 3px 8px; border-radius: 6px; display: flex; gap: 4px; align-items: center; }
-      .tag.good { color: var(--green); background: var(--green-soft); }
-      .tag.bad { color: var(--red); background: var(--red-soft); }
-      .ai { font-size: 12px; font-style: italic; color: var(--amber); background: color-mix(in srgb, var(--amber) 10%, transparent); border-left: 2px solid var(--amber); padding: 7px 10px; border-radius: 0 8px 8px 0; }
-      .meter { height: 6px; background: var(--panel-2); border-radius: 999px; overflow: hidden; }
-      .meter > i { display: block; height: 100%; background: linear-gradient(90deg, var(--brand), #ec4899); }
-      .actions { display: flex; gap: 7px; padding-top: 12px; border-top: 1px solid var(--line); margin-top: auto; }
-      .actions .buy { flex: 1; justify-content: center; }
+      .badge-quick {
+        position: absolute; top: 10px; right: 10px; display: flex; gap: 4px;
+      }
+      .bug-pill {
+        background: #ef4444; color: #fff; font-size: 10px; font-weight: 800;
+        padding: 4px 8px; border-radius: 6px; display: flex; gap: 4px; align-items: center;
+        box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+      }
 
-      .sk { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); height: 360px; overflow: hidden; }
-      .sk .a { height: 180px; background: var(--panel-2); }
-      .sk .b { height: 14px; margin: 14px; border-radius: 7px; background: var(--panel-2); }
-      .sk .b.s { width: 55%; }
-      .sk * { animation: pulse 1.4s infinite; }
-      @keyframes pulse { 50% { opacity: .55; } }
-      .empty { grid-column: 1/-1; text-align: center; padding: 80px 20px; color: var(--muted); }
+      .card-body {
+        padding: 16px; display: flex; flex-direction: column; gap: 10px; flex: 1;
+      }
+      .meta-row {
+        display: flex; justify-content: space-between; align-items: center;
+      }
+      .cat-badge {
+        font-size: 11px; font-weight: 700; color: var(--brand);
+        text-transform: uppercase; letter-spacing: .04em;
+        background: var(--brand-soft); padding: 3px 8px; border-radius: 6px;
+      }
+      .time-tag {
+        font-size: 11px; color: var(--muted); font-weight: 500;
+        display: flex; align-items: center; gap: 4px;
+      }
+      .title-link {
+        font-size: 14px; font-weight: 600; line-height: 1.4; height: 2.8em;
+        overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        color: var(--txt);
+      }
+      .prices-wrap {
+        display: flex; align-items: baseline; gap: 8px; margin-top: 2px;
+      }
+      .current-price {
+        font-size: 23px; font-weight: 800; color: var(--green);
+        font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em;
+      }
+      .old-price {
+        font-size: 13px; color: var(--muted); text-decoration: line-through;
+        font-family: 'JetBrains Mono', monospace;
+      }
+      .discount-pill {
+        margin-left: auto; background: var(--red-soft); color: var(--red);
+        font-weight: 800; font-size: 12px; padding: 3px 8px; border-radius: 6px;
+        font-family: 'JetBrains Mono', monospace;
+      }
+      .tags-row { display: flex; gap: 6px; flex-wrap: wrap; }
+      .pill-tag {
+        font-size: 11px; font-weight: 600; color: var(--muted); background: var(--panel-2);
+        padding: 3px 8px; border-radius: 6px; display: inline-flex; gap: 4px; align-items: center;
+      }
+      .pill-tag.good { color: var(--green); background: var(--green-soft); }
+      .pill-tag.bad { color: var(--red); background: var(--red-soft); }
 
-      .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+      .ai-insight {
+        font-size: 12px; line-height: 1.4; color: var(--amber);
+        background: var(--amber-soft); border-left: 3px solid var(--amber);
+        padding: 8px 10px; border-radius: 0 8px 8px 0;
+      }
+      .score-bar-wrap {
+        display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); font-weight: 600;
+      }
+      .meter-track {
+        flex: 1; height: 6px; background: var(--panel-2); border-radius: 999px; overflow: hidden;
+      }
+      .meter-track > div {
+        height: 100%; background: linear-gradient(90deg, var(--brand), #ec4899); border-radius: 999px;
+      }
+
+      .actions-bar {
+        display: flex; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line);
+        margin-top: auto;
+      }
+      .btn-buy {
+        flex: 1; justify-content: center; font-weight: 700;
+      }
+
+      /* Skeletons */
+      .sk { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); height: 380px; overflow: hidden; }
+      .sk .a { height: 195px; background: var(--panel-2); }
+      .sk .b { height: 16px; margin: 16px; border-radius: 6px; background: var(--panel-2); }
+      .sk .b.s { width: 50%; }
+      .sk * { animation: pulse 1.5s infinite; }
+      @keyframes pulse { 50% { opacity: .45; } }
+      .empty-state {
+        grid-column: 1/-1; text-align: center; padding: 90px 20px; color: var(--muted);
+      }
+      .empty-state i { margin-bottom: 12px; opacity: 0.5; }
+
+      /* Modals */
+      .overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,.65); backdrop-filter: blur(6px);
+        z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px;
+      }
       .overlay.open { display: flex; }
-      .modal { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; width: 100%; max-width: 760px; max-height: 88vh; overflow: hidden; display: flex; flex-direction: column; }
-      .modal .h { padding: 18px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-      .modal .h b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .modal .c { padding: 20px; overflow-y: auto; }
-      .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
-      .stat { background: var(--panel-2); border-radius: 12px; padding: 12px; text-align: center; }
-      .stat .l { font-size: 10px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
-      .stat .v { font-size: 15px; font-weight: 800; margin-top: 3px; }
-      .chartbox { height: 280px; }
-      @media (max-width: 560px) { .stats { grid-template-columns: repeat(2,1fr); } .kpis { display: none; } .search input { width: 150px; } }
+      .modal {
+        background: var(--panel); border: 1px solid var(--line); border-radius: 24px;
+        width: 100%; max-width: 780px; max-height: 88vh; overflow: hidden;
+        display: flex; flex-direction: column; box-shadow: var(--shadow-lg);
+      }
+      .modal-header {
+        padding: 20px 24px; border-bottom: 1px solid var(--line);
+        display: flex; justify-content: space-between; align-items: center; gap: 14px;
+      }
+      .modal-header h3 {
+        margin: 0; font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      .modal-body { padding: 24px; overflow-y: auto; }
+      .stats-grid {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;
+      }
+      .stat-card {
+        background: var(--panel-2); border-radius: 12px; padding: 14px; text-align: center;
+        border: 1px solid var(--line);
+      }
+      .stat-card .lbl { font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+      .stat-card .val {
+        font-size: 17px; font-weight: 800; margin-top: 4px; font-family: 'JetBrains Mono', monospace;
+      }
+      .chart-container { height: 280px; margin-top: 10px; }
 
-      .toast-wrap { position: fixed; bottom: 18px; right: 18px; display: flex; flex-direction: column; gap: 8px; z-index: 200; }
-      .toast { background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 11px; padding: 11px 16px; font-size: 13px; font-weight: 600; display: flex; gap: 9px; align-items: center; transform: translateX(130%); transition: .3s cubic-bezier(.2,.9,.3,1.3); }
+      .toast-wrap {
+        position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 200;
+      }
+      .toast {
+        background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow-md);
+        border-radius: 12px; padding: 12px 18px; font-size: 13px; font-weight: 600;
+        display: flex; gap: 10px; align-items: center; transform: translateX(130%); transition: .3s cubic-bezier(.2,.9,.3,1.3);
+      }
       .toast.on { transform: translateX(0); }
+
+      @media (max-width: 680px) {
+        .bar { padding: 10px 16px; gap: 12px; }
+        .kpis { display: none; }
+        .search-box { max-width: 100%; }
+        .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      }
     </style>
   </head>
   <body>
     <header>
       <div class="bar">
-        <div class="brand"><span class="dot"><i data-lucide="flame" size="17"></i></span> Radar de Ofertas</div>
+        <div class="brand">
+          <span class="logo-icon"><i data-lucide="zap" size="18"></i></span>
+          Radar de Ofertas
+        </div>
         <div class="kpis">
-          <div class="kpi"><b id="k-deals">—</b> ofertas</div>
-          <div class="kpi"><b id="k-sources">—</b> lojas</div>
-          <div class="kpi"><b id="k-best">—</b> melhor desconto</div>
+          <div class="kpi-card"><span class="val" id="k-deals">—</span><span class="lbl">ofertas</span></div>
+          <div class="kpi-card"><span class="val" id="k-sources">—</span><span class="lbl">lojas</span></div>
+          <div class="kpi-card"><span class="val" id="k-best">—</span><span class="lbl">desconto máx</span></div>
         </div>
         <div class="right">
-          <button class="icon" onclick="toggleTheme()" title="Tema"><i data-lucide="moon" id="theme-i" size="17"></i></button>
-          <button class="icon" onclick="openQueriesModal()" title="Configurações de Busca"><i data-lucide="settings" size="17"></i></button>
-          <button id="btn-crawl" onclick="runCycle()"><i data-lucide="refresh-cw" size="15"></i> Rodar ciclo</button>
-          <button class="btn brand" onclick="load()"><i data-lucide="zap" size="15"></i> Atualizar</button>
+          <button class="icon-btn" onclick="toggleTheme()" title="Alternar tema"><i data-lucide="moon" id="theme-icon" size="18"></i></button>
+          <button class="icon-btn" onclick="openQueriesModal()" title="Termos de busca"><i data-lucide="sliders-horizontal" size="18"></i></button>
+          <button id="btn-crawl" onclick="runCycle()"><i data-lucide="refresh-cw" size="15"></i> Varrer Ofertas</button>
+          <button class="btn brand" onclick="load()"><i data-lucide="arrow-clockwise" size="15"></i> Atualizar</button>
         </div>
       </div>
     </header>
 
     <main>
       <div class="toolbar">
-        <div class="chips" id="chips"></div>
-        <div class="grow"></div>
-        <select class="sort" id="sort" onchange="render()">
-          <option value="recent">Mais recentes</option>
-          <option value="discount">Maior desconto</option>
-          <option value="score">Maior score</option>
-          <option value="price">Menor preço</option>
-        </select>
-        <div class="search">
-          <i data-lucide="search" size="15"></i>
-          <input id="q" placeholder="Buscar..." oninput="render()" />
+        <div class="filter-row">
+          <span class="filter-title">Lojas:</span>
+          <div class="chips" id="chips-sources"></div>
+        </div>
+
+        <div class="filter-row">
+          <span class="filter-title">Categorias:</span>
+          <div class="chips" id="chips-categories"></div>
+        </div>
+
+        <div class="search-sort-bar">
+          <div class="search-box">
+            <i data-lucide="search" size="16"></i>
+            <input id="q" placeholder="Buscar por título, marca ou categoria..." oninput="render()" />
+          </div>
+          <select class="sort-select" id="sort" onchange="render()">
+            <option value="recent">⚡ Mais recentes</option>
+            <option value="discount">🔥 Maior desconto</option>
+            <option value="score">🎯 Maior utilidade / score</option>
+            <option value="price_asc">💵 Menor preço</option>
+            <option value="price_desc">💎 Maior preço</option>
+          </select>
         </div>
       </div>
+
       <div class="grid" id="grid"></div>
     </main>
 
+    <!-- Modal Histórico & Gráficos -->
     <div class="overlay" id="modal" onclick="if(event.target===this)closeModal()">
       <div class="modal">
-        <div class="h"><b id="m-title">Histórico</b><button class="icon" onclick="closeModal()"><i data-lucide="x" size="18"></i></button></div>
-        <div class="c">
-          <div class="stats" id="m-stats"></div>
-          <div class="chartbox"><canvas id="chart"></canvas></div>
-          <div id="m-ai" style="margin-top:16px"></div>
+        <div class="modal-header">
+          <h3 id="m-title">Histórico de Preços</h3>
+          <button class="icon-btn" onclick="closeModal()"><i data-lucide="x" size="18"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="stats-grid" id="m-stats"></div>
+          <div class="chart-container"><canvas id="chart"></canvas></div>
+          <div id="m-ai" style="margin-top:18px"></div>
         </div>
       </div>
     </div>
 
+    <!-- Modal Termos de Busca -->
     <div class="overlay" id="modal-queries" onclick="if(event.target===this)closeQueriesModal()">
       <div class="modal">
-        <div class="h"><b>Termos de Busca Monitorados</b><button class="icon" onclick="closeQueriesModal()"><i data-lucide="x" size="18"></i></button></div>
-        <div class="c">
-          <p style="font-size:13px;color:var(--muted);margin-top:0;margin-bottom:16px">Adicione ou remova os termos que o crawler deve pesquisar nos e-commerces. As mudanças são salvas na base de dados.</p>
+        <div class="modal-header">
+          <h3>Termos Monitorados nos E-commerces</h3>
+          <button class="icon-btn" onclick="closeQueriesModal()"><i data-lucide="x" size="18"></i></button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:13px;color:var(--muted);margin-top:0;margin-bottom:16px">
+            Defina as palavras-chave que os crawlers monitoram nas lojas. As mudanças têm efeito imediato no próximo ciclo de crawl.
+          </p>
           <div style="display:flex;gap:8px;margin-bottom:18px">
-            <input id="new-query-input" placeholder="Novo termo (ex: cadeira gamer)" style="flex:1;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--txt);font-size:13px;outline:none" onkeydown="if(event.key==='Enter')addNewQuery()" />
+            <input id="new-query-input" placeholder="Novo termo (ex: whey isolado, tv oled, geladeira frost free)" style="flex:1;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--txt);font-size:13px;outline:none" onkeydown="if(event.key==='Enter')addNewQuery()" />
             <button class="btn brand" onclick="addNewQuery()" style="padding:9px 16px"><i data-lucide="plus" size="15"></i> Adicionar</button>
           </div>
           <div id="queries-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
@@ -214,36 +455,91 @@
 
     <script>
       const SOURCES = [
-        ["all", "Todas"], ["mercadolivre", "Mercado Livre"], ["amazon", "Amazon"], ["magalu", "Magalu"],
-        ["kabum", "KaBuM!"], ["aliexpress", "AliExpress"], ["shopee", "Shopee"],
-        ["casasbahia", "Casas Bahia"], ["pontofrio", "Ponto"], ["extra", "Extra"],
+        ["all", "Todas as Lojas"],
+        ["mercadolivre", "Mercado Livre"],
+        ["amazon", "Amazon"],
+        ["magalu", "Magalu"],
+        ["zoom", "Zoom"],
+        ["buscape", "Buscapé"],
+        ["casasbahia", "Casas Bahia"],
+        ["extra", "Extra"],
+        ["pontofrio", "Ponto"],
+        ["kabum", "KaBuM!"],
+        ["aliexpress", "AliExpress"],
+        ["shopee", "Shopee"],
       ];
+
+      const CATEGORIES = [
+        ["all", "Todas"],
+        ["suplementos", "Whey & Suplementos"],
+        ["roupas", "Roupas & Tênis"],
+        ["eletrodomesticos", "Eletrodomésticos"],
+        ["tv-audio", "TVs & Áudio"],
+        ["jogos", "Jogos & Consoles"],
+        ["eletroportateis", "Eletroportáteis"],
+        ["ferramentas", "Ferramentas"],
+        ["computadores", "Computadores"],
+        ["armazenamento", "SSDs & Memória"],
+        ["celulares", "Celulares"],
+      ];
+
       const LABEL = Object.fromEntries(SOURCES);
-      let deals = [], source = "all", chart = null;
+      let deals = [], source = "all", category = "all", chart = null;
       let dark = localStorage.getItem("theme") !== "light";
 
       const brl = (v) => (v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       const esc = (s) => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; };
       const ago = (d) => {
         const s = Math.floor((Date.now() - new Date(d)) / 1000);
-        if (s < 60) return s + "s"; if (s < 3600) return Math.floor(s/60) + "min";
-        if (s < 86400) return Math.floor(s/3600) + "h"; return Math.floor(s/86400) + "d";
+        if (s < 60) return s + "s atrás";
+        if (s < 3600) return Math.floor(s/60) + "m atrás";
+        if (s < 86400) return Math.floor(s/3600) + "h atrás";
+        return Math.floor(s/86400) + "d atrás";
       };
 
       function applyTheme() {
         document.documentElement.classList.toggle("dark", dark);
         document.documentElement.classList.toggle("light", !dark);
-        const i = document.getElementById("theme-i"); if (i) i.setAttribute("data-lucide", dark ? "moon" : "sun");
+        const icon = document.getElementById("theme-icon");
+        if (icon) icon.setAttribute("data-lucide", dark ? "moon" : "sun");
         lucide.createIcons();
       }
-      function toggleTheme() { dark = !dark; localStorage.setItem("theme", dark ? "dark" : "light"); applyTheme(); }
+      function toggleTheme() {
+        dark = !dark;
+        localStorage.setItem("theme", dark ? "dark" : "light");
+        applyTheme();
+        if (chart) drawChart(currentChartSeries || []);
+      }
 
       function buildChips() {
-        document.getElementById("chips").innerHTML = SOURCES.map(([k, l]) =>
-          `<div class="chip ${k === source ? "active" : ""}" data-k="${k}" onclick="setSource('${k}')">${l}</div>`
-        ).join("");
+        const sourceCounts = deals.reduce((acc, d) => {
+          acc[d.source] = (acc[d.source] || 0) + 1;
+          return acc;
+        }, {});
+
+        document.getElementById("chips-sources").innerHTML = SOURCES.map(([k, l]) => {
+          const count = k === "all" ? deals.length : (sourceCounts[k] || 0);
+          return `<div class="chip ${k === source ? "active" : ""}" onclick="setSource('${k}')">
+            ${l} <span class="count">${count}</span>
+          </div>`;
+        }).join("");
+
+        const catCounts = deals.reduce((acc, d) => {
+          const c = d.category || "geral";
+          acc[c] = (acc[c] || 0) + 1;
+          return acc;
+        }, {});
+
+        document.getElementById("chips-categories").innerHTML = CATEGORIES.map(([k, l]) => {
+          const count = k === "all" ? deals.length : (catCounts[k] || 0);
+          return `<div class="chip ${k === category ? "active" : ""}" onclick="setCategory('${k}')">
+            ${l} <span class="count">${count}</span>
+          </div>`;
+        }).join("");
       }
+
       function setSource(k) { source = k; buildChips(); render(); }
+      function setCategory(k) { category = k; buildChips(); render(); }
 
       function skeletons() {
         document.getElementById("grid").innerHTML = Array(8).fill(0).map(() =>
@@ -252,10 +548,14 @@
 
       async function load() {
         try {
-          const r = await fetch("/api/deals?limit=200");
+          const r = await fetch("/api/deals?limit=250");
           deals = await r.json();
-          render(); kpis();
-        } catch (e) { toast("Falha ao carregar ofertas", "bad"); }
+          buildChips();
+          render();
+          kpis();
+        } catch (e) {
+          toast("Falha ao sincronizar ofertas", "bad");
+        }
       }
 
       function kpis() {
@@ -267,46 +567,76 @@
 
       function render() {
         const grid = document.getElementById("grid");
-        const q = document.getElementById("q").value.toLowerCase();
+        const q = document.getElementById("q").value.toLowerCase().trim();
         const sort = document.getElementById("sort").value;
-        let list = deals.filter(d =>
-          (source === "all" || d.source === source) &&
-          (!q || d.title.toLowerCase().includes(q) || (d.category || "").toLowerCase().includes(q)));
-        list.sort((a, b) =>
-          sort === "discount" ? (b.discount_pct - a.discount_pct) :
-          sort === "score" ? (b.score - a.score) :
-          sort === "price" ? (a.price - b.price) :
-          (new Date(b.created_at) - new Date(a.created_at)));
 
-        if (!list.length) { grid.innerHTML = `<div class="empty">Nenhuma oferta encontrada.</div>`; return; }
+        let list = deals.filter(d => {
+          const matchSource = (source === "all" || d.source === source);
+          const matchCat = (category === "all" || d.category === category);
+          const matchSearch = (!q || d.title.toLowerCase().includes(q) || (d.category || "").toLowerCase().includes(q) || (d.source || "").toLowerCase().includes(q));
+          return matchSource && matchCat && matchSearch;
+        });
+
+        list.sort((a, b) => {
+          if (sort === "discount") return (b.discount_pct - a.discount_pct);
+          if (sort === "score") return (b.score - a.score);
+          if (sort === "price_asc") return (a.price - b.price);
+          if (sort === "price_desc") return (b.price - a.price);
+          return (new Date(b.created_at) - new Date(a.created_at));
+        });
+
+        if (!list.length) {
+          grid.innerHTML = `
+            <div class="empty-state">
+              <i data-lucide="search-x" size="48"></i>
+              <div style="font-size:16px;font-weight:700;margin-bottom:6px">Nenhuma promoção encontrada</div>
+              <div style="font-size:13px">Tente ajustar seus termos de busca ou filtros de categoria.</div>
+            </div>`;
+          lucide.createIcons();
+          return;
+        }
 
         grid.innerHTML = list.map((d, i) => {
-          const off = d.discount_pct > 0 ? `<span class="off">-${d.discount_pct.toFixed(0)}%</span>` : "";
-          const was = d.price < d.avg_price ? `<span class="was">${brl(d.avg_price)}</span>` : "";
-          const low = d.price <= d.min_price + 0.1 ? `<span class="tag good"><i data-lucide="award" size="11"></i> menor preço</span>` : "";
-          const tr = d.trend ? `<span class="tag ${d.trend.direction==='falling'?'good':d.trend.direction==='rising'?'bad':''}"><i data-lucide="${d.trend.direction==='falling'?'trending-down':d.trend.direction==='rising'?'trending-up':'minus'}" size="11"></i> ${d.trend.direction==='falling'?'em queda':d.trend.direction==='rising'?'subindo':'estável'}</span>` : "";
-          const ai = d.ai_comment ? `<div class="ai">${esc(d.ai_comment)}</div>` : "";
-          return `<div class="card" style="animation-delay:${i*0.03}s">
-            <div class="thumb">
+          const off = d.discount_pct > 0 ? `<span class="discount-pill">-${d.discount_pct.toFixed(0)}%</span>` : "";
+          const was = d.price < d.avg_price ? `<span class="old-price">${brl(d.avg_price)}</span>` : "";
+          const low = d.price <= d.min_price + 0.1 ? `<span class="pill-tag good"><i data-lucide="award" size="12"></i> menor preço</span>` : "";
+          const tr = d.trend ? `<span class="pill-tag ${d.trend.direction==='falling'?'good':d.trend.direction==='rising'?'bad':''}"><i data-lucide="${d.trend.direction==='falling'?'trending-down':d.trend.direction==='rising'?'trending-up':'minus'}" size="12"></i> ${d.trend.direction==='falling'?'em queda':d.trend.direction==='rising'?'subindo':'estável'}</span>` : "";
+          const ai = d.ai_comment ? `<div class="ai-insight">💡 ${esc(d.ai_comment)}</div>` : "";
+          const scorePercent = Math.min(100, Math.round(d.score * 100));
+
+          return `<div class="card" style="animation-delay:${Math.min(i*0.02, 0.4)}s">
+            <div class="thumb-wrap">
               <span class="badge s-${d.source}">${LABEL[d.source] || d.source}</span>
-              ${d.priceBug ? `<span class="bug"><i data-lucide="alert-triangle" size="11"></i> anomalia</span>` : ""}
-              <img src="${d.image || ''}" loading="lazy" onload="this.classList.add('on')" onerror="this.style.display='none'">
-            </div>
-            <div class="body">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <span class="cat">${esc(d.category || "geral")}</span>
-                <span class="tag"><i data-lucide="clock" size="10"></i> ${ago(d.created_at)}</span>
+              <div class="badge-quick">
+                ${d.priceBug ? `<span class="bug-pill"><i data-lucide="flame" size="11"></i> BUG</span>` : ""}
               </div>
-              <div class="title" title="${esc(d.title)}">${esc(d.title)}</div>
-              <div class="prices"><span class="now">${brl(d.price)}</span>${was}${off}</div>
-              <div class="tags">${low}${tr}</div>
+              <img src="${d.image || ''}" loading="lazy" onload="this.classList.add('on')" onerror="this.src='https://placehold.co/240x240?text=Sem+Foto'">
+            </div>
+            <div class="card-body">
+              <div class="meta-row">
+                <span class="cat-badge">${esc(d.category || "geral")}</span>
+                <span class="time-tag"><i data-lucide="clock" size="11"></i> ${ago(d.created_at)}</span>
+              </div>
+              <a href="${d.url}" target="_blank" class="title-link" title="${esc(d.title)}">${esc(d.title)}</a>
+              <div class="prices-wrap">
+                <span class="current-price">${brl(d.price)}</span>
+                ${was}
+                ${off}
+              </div>
+              <div class="tags-row">${low}${tr}</div>
               ${ai}
-              <div class="meter" title="score ${(d.score*100).toFixed(0)}/100"><i style="width:${Math.min(100,d.score*100)}%"></i></div>
-              <div class="actions">
-                <button class="btn brand buy" onclick="window.open('${d.url}','_blank')"><i data-lucide="shopping-cart" size="15"></i> Comprar</button>
-                <button class="icon" title="Histórico" onclick="openModal(${d.id})"><i data-lucide="line-chart" size="16"></i></button>
-                <button class="icon" title="Gostei" onclick="vote(${d.id},1,this)"><i data-lucide="thumbs-up" size="16"></i></button>
-                <button class="icon" title="Não gostei" onclick="vote(${d.id},-1,this)"><i data-lucide="thumbs-down" size="16"></i></button>
+              <div class="score-bar-wrap">
+                <span>Score</span>
+                <div class="meter-track" title="Score de utilidade: ${scorePercent}%">
+                  <div style="width:${scorePercent}%"></div>
+                </div>
+                <span>${scorePercent}%</span>
+              </div>
+              <div class="actions-bar">
+                <button class="btn brand btn-buy" onclick="window.open('${d.url}','_blank')"><i data-lucide="external-link" size="15"></i> Ir à Loja</button>
+                <button class="icon-btn" title="Histórico e Gráfico" onclick="openModal(${d.id})"><i data-lucide="line-chart" size="16"></i></button>
+                <button class="icon-btn" title="Achei útil" onclick="vote(${d.id},1,this)"><i data-lucide="thumbs-up" size="16"></i></button>
+                <button class="icon-btn" title="Não é útil" onclick="vote(${d.id},-1,this)"><i data-lucide="thumbs-down" size="16"></i></button>
               </div>
             </div>
           </div>`;
@@ -316,32 +646,54 @@
 
       async function vote(id, v, btn) {
         try {
-          const r = await fetch("/api/feedback", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ dealId: id, vote: v }) });
-          if (r.ok) { btn.style.color = v > 0 ? "var(--green)" : "var(--red)"; toast("Feedback registrado", "good"); }
-          else toast("Não foi possível votar", "bad");
-        } catch { toast("Erro ao votar", "bad"); }
+          const r = await fetch("/api/feedback", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ dealId: id, vote: v })
+          });
+          if (r.ok) {
+            btn.style.color = v > 0 ? "var(--green)" : "var(--red)";
+            toast(v > 0 ? "Afinidade aumentada para este item!" : "Penalização registrada!", "good");
+          } else {
+            toast("Não foi possível salvar o feedback", "bad");
+          }
+        } catch {
+          toast("Erro na conexão com o servidor", "bad");
+        }
       }
 
       async function runCycle() {
         const b = document.getElementById("btn-crawl");
-        b.disabled = true; b.querySelector("i").style.animation = "pulse 1s infinite";
-        toast("Varredura iniciada...", "brand");
-        try { await fetch("/api/crawl", { method: "POST" }); toast("Ciclo concluído", "good"); load(); }
-        catch { toast("Falha na varredura", "bad"); }
-        finally { b.disabled = false; b.querySelector("i").style.animation = ""; }
+        b.disabled = true;
+        const icon = b.querySelector("i");
+        if (icon) icon.style.animation = "pulse 1s infinite";
+        toast("Varredura manual iniciada nas lojas...", "brand");
+        try {
+          await fetch("/api/crawl", { method: "POST" });
+          toast("Varredura concluída! Atualizando dados...", "good");
+          load();
+        } catch {
+          toast("Falha durante o ciclo de varredura", "bad");
+        } finally {
+          b.disabled = false;
+          if (icon) icon.style.animation = "";
+        }
       }
 
+      let currentChartSeries = null;
       function openModal(id) {
-        const d = deals.find(x => x.id === id); if (!d) return;
+        const d = deals.find(x => x.id === id);
+        if (!d) return;
         document.getElementById("m-title").textContent = d.title;
         const drop = d.avg_price > 0 ? ((d.avg_price - d.price) / d.avg_price * 100).toFixed(0) : 0;
         document.getElementById("m-stats").innerHTML = `
-          <div class="stat"><div class="l">Atual</div><div class="v" style="color:var(--green)">${brl(d.price)}</div></div>
-          <div class="stat"><div class="l">Mínimo</div><div class="v">${brl(d.min_price)}</div></div>
-          <div class="stat"><div class="l">Máximo</div><div class="v">${brl(d.max_price)}</div></div>
-          <div class="stat"><div class="l">Queda</div><div class="v" style="color:var(--red)">${drop}%</div></div>`;
-        document.getElementById("m-ai").innerHTML = d.ai_comment ? `<div class="ai">${esc(d.ai_comment)}</div>` : "";
-        drawChart(d.seriesDates || []);
+          <div class="stat-card"><div class="lbl">Preço Atual</div><div class="val" style="color:var(--green)">${brl(d.price)}</div></div>
+          <div class="stat-card"><div class="lbl">Menor Histórico</div><div class="val">${brl(d.min_price)}</div></div>
+          <div class="stat-card"><div class="lbl">Preço Médio</div><div class="val">${brl(d.avg_price)}</div></div>
+          <div class="stat-card"><div class="lbl">Queda Real</div><div class="val" style="color:var(--red)">-${drop}%</div></div>`;
+        document.getElementById("m-ai").innerHTML = d.ai_comment ? `<div class="ai-insight">💡 ${esc(d.ai_comment)}</div>` : "";
+        currentChartSeries = d.seriesDates || [];
+        drawChart(currentChartSeries);
         document.getElementById("modal").classList.add("open");
         lucide.createIcons();
       }
@@ -351,15 +703,36 @@
         const ctx = document.getElementById("chart").getContext("2d");
         if (chart) chart.destroy();
         const grid = dark ? "rgba(255,255,255,.06)" : "rgba(0,0,0,.06)";
-        const tc = dark ? "#9aa3b2" : "#6b7280";
+        const tc = dark ? "#94a3b8" : "#64748b";
+
+        const labels = series.length ? series.map(p => new Date(p.date).toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })) : ["Atual"];
+        const data = series.length ? series.map(p => p.price) : [0];
+
         chart = new Chart(ctx, {
           type: "line",
           data: {
-            labels: series.map(p => new Date(p.date).toLocaleDateString("pt-BR")),
-            datasets: [{ data: series.map(p => p.price), borderColor: "#7c83ff", backgroundColor: "rgba(124,131,255,.12)", borderWidth: 2.5, fill: true, tension: .35, pointRadius: 3 }],
+            labels,
+            datasets: [{
+              label: "Preço (R$)",
+              data,
+              borderColor: dark ? "#818cf8" : "#6366f1",
+              backgroundColor: dark ? "rgba(129, 140, 248, 0.15)" : "rgba(99, 102, 241, 0.08)",
+              borderWidth: 2.5,
+              fill: true,
+              tension: 0.35,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+            }],
           },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-            scales: { x: { grid: { display: false }, ticks: { color: tc, font: { size: 10 } } }, y: { grid: { color: grid }, ticks: { color: tc, font: { size: 10 }, callback: v => "R$" + v } } } },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: tc, font: { size: 10 } } },
+              y: { grid: { color: grid }, ticks: { color: tc, font: { size: 10 }, callback: v => "R$" + v } }
+            }
+          },
         });
       }
 
@@ -371,7 +744,7 @@
         document.getElementById("toasts").appendChild(el);
         lucide.createIcons();
         requestAnimationFrame(() => el.classList.add("on"));
-        setTimeout(() => { el.classList.remove("on"); setTimeout(() => el.remove(), 300); }, 2800);
+        setTimeout(() => { el.classList.remove("on"); setTimeout(() => el.remove(), 300); }, 3000);
       }
 
       async function loadQueries() {
@@ -385,7 +758,7 @@
              </div>`
           ).join("");
           lucide.createIcons();
-        } catch { toast("Erro ao carregar termos", "bad"); }
+        } catch { toast("Erro ao ler termos do crawler", "bad"); }
       }
       async function addNewQuery() {
         const input = document.getElementById("new-query-input");
@@ -399,7 +772,7 @@
           });
           if (r.ok) {
             input.value = "";
-            toast("Termo adicionado", "good");
+            toast("Termo adicionado com sucesso", "good");
             loadQueries();
           } else { toast("Termo já existe ou é inválido", "bad"); }
         } catch { toast("Erro ao adicionar termo", "bad"); }
@@ -420,7 +793,10 @@
       function openQueriesModal() { loadQueries(); document.getElementById("modal-queries").classList.add("open"); }
       function closeQueriesModal() { document.getElementById("modal-queries").classList.remove("open"); }
 
-      applyTheme(); buildChips(); skeletons(); load();
+      applyTheme();
+      buildChips();
+      skeletons();
+      load();
       setInterval(load, 60000);
       window.addEventListener("keydown", e => { if (e.key === "Escape") { closeModal(); closeQueriesModal(); } });
     </script>
