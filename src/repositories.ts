@@ -140,7 +140,38 @@ export class DealRepository extends BaseRepository {
     return r.c > 0;
   }
 
-  /** True se produto já virou oferta antes, mesmo que Telegram/dry-run tenha falhado. */
+  /**
+   * True se produto com título similar já foi notificado recentemente (evita spam de múltiplos marketplaces).
+   */
+  wasSimilarProductNotifiedRecently(title: string, hours = 24): boolean {
+    const rows = this.db.query(
+      `SELECT p.title FROM deals d
+       JOIN products p ON p.id = d.product_id
+       WHERE d.notified = 1
+         AND d.created_at >= datetime('now', $delta)`
+    ).all({ $delta: `-${hours} hours` }) as { title: string }[];
+
+    if (rows.length === 0) return false;
+
+    const normalize = (str: string) =>
+      str.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, ' ').trim().split(/\s+/).filter(w => w.length >= 3);
+
+    const targetTokens = new Set(normalize(title));
+    if (targetTokens.size === 0) return false;
+
+    for (const r of rows) {
+      const tokens = normalize(r.title);
+      if (tokens.length === 0) continue;
+      const common = tokens.filter(t => targetTokens.has(t)).length;
+      const similarity = common / Math.max(targetTokens.size, tokens.length);
+      if (similarity >= 0.6 || (common >= 4 && targetTokens.size >= 4)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   hasDealForProduct(productId: number): boolean {
     const r = this.db.query(
       "SELECT COUNT(*) c FROM deals WHERE product_id = $pid"

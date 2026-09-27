@@ -20,7 +20,7 @@ export const config = {
   // termos pesquisados nos e-commerces
   queries: env(
     "CRAWL_QUERIES",
-    "whey protein,ssd nvme,monitor gamer,cadeira gamer,echo dot,creatina",
+    "whey protein,ssd nvme,monitor gamer,cadeira gamer,echo dot,creatina,air fryer,parafusadeira,aspirador robo,cafeteira",
   )
     .split(",")
     .map((s) => s.trim())

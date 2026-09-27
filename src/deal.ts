@@ -1,6 +1,7 @@
 import { config } from "./config.ts";
 import type { DealEval, PriceStats } from "./types.ts";
 import { affinity } from "./recommend.ts";
+import { utilityScore } from "./category.ts";
 
 // Detecta bug de precificação: desconto absurdo frente à média histórica
 // (ex.: PS5 anunciado por R$100). Sinaliza para tratamento visual distinto.
@@ -53,8 +54,11 @@ export function evaluate(
   const aff = affinity(title, category);
   reasons.push(aff.detail);
 
-  // score = força * afinidade, saturado em 1
-  const score = Math.min(discountStrength * aff.multiplier, 1);
+  const util = utilityScore(title, category);
+  reasons.push(util.reason);
+
+  // score = força * afinidade * utilidade, saturado em 1
+  const score = Math.min(discountStrength * aff.multiplier * util.score, 1);
 
   return { isDeal, price, avg, discountPct, zscore, score, reasons };
 }
@@ -78,7 +82,11 @@ function evaluateAgainstBaseline(
   const discountStrength = Math.min(Math.max(discountPct, 0) / 40, 1);
   const aff = affinity(title, category);
   reasons.push(aff.detail);
-  const score = Math.min(discountStrength * aff.multiplier, 1);
+
+  const util = utilityScore(title, category);
+  reasons.push(util.reason);
+
+  const score = Math.min(discountStrength * aff.multiplier * util.score, 1);
 
   return { ...base, isDeal: true, score, reasons };
 }

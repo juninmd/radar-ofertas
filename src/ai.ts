@@ -17,7 +17,7 @@ export async function analyzeDeal(
     `(COMPRA JÁ / VALE A PENA / MEDIANO / PASSE) seguido de um motivo direto. ` +
     `Produto: "${title}" (${source}). Preço atual R$${deal.price.toFixed(2)}, ` +
     `média histórica R$${deal.avg.toFixed(2)}, desconto ${deal.discountPct.toFixed(1)}%. ` +
-    `Seja honesto: se o desconto for fraco, diga MEDIANO ou PASSE.`;
+    `Avalie o preco e a utilidade pratica no dia a dia: se o item for superfluo, inutil ou com desconto fraco, de veredito PASSE ou MEDIANO.`;
 
   const ctrl = new AbortController();
   const to = setTimeout(() => ctrl.abort(), config.litellm.timeoutMs);

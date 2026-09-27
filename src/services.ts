@@ -54,10 +54,15 @@ export class DealService {
     }
 
     // Evita spam: não renotifica o mesmo produto em <12h.
+    // Evita spam: nao renotifica o mesmo produto em <12h e nem similar recente em <24h.
+    const isDuplicateRecent =
+      this.dealRepo.wasNotifiedRecently(productId, 12) ||
+      this.dealRepo.wasSimilarProductNotifiedRecently(p.title, 24);
+
     const shouldNotify =
       allowNotify &&
       evalResult.score >= config.notifyScore &&
-      !this.dealRepo.wasNotifiedRecently(productId, 12);
+      !isDuplicateRecent;
     let aiComment: string | null = null;
     if (shouldNotify) {
       aiComment = await analyzeDeal(p.title, p.source, evalResult);
