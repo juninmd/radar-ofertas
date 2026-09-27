@@ -201,20 +201,44 @@
       @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
 
       .thumb-wrap {
-        position: relative; height: 195px; background: #ffffff;
-        display: grid; place-items: center; padding: 16px;
+        position: relative;
+        height: 200px;
+        width: 100%;
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        overflow: hidden;
         border-bottom: 1px solid var(--line-soft);
+        box-sizing: border-box;
+      }
+      html.dark .thumb-wrap {
+        background: radial-gradient(circle at center, #1e2330 0%, #151822 100%);
       }
       .thumb-wrap img {
-        max-width: 100%; max-height: 100%; object-fit: contain;
-        opacity: 0; transition: opacity .25s ease;
+        max-width: calc(100% - 24px);
+        max-height: calc(100% - 24px);
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        display: block;
+        opacity: 0;
+        transition: opacity .25s ease, transform .25s ease;
+        pointer-events: none;
+        user-select: none;
+        filter: drop-shadow(0 2px 8px rgba(0,0,0,0.08));
       }
       .thumb-wrap img.on { opacity: 1; }
+      .card:hover .thumb-wrap img.on {
+        transform: scale(1.05);
+      }
 
       .badge {
         position: absolute; top: 10px; left: 10px; font-size: 10px; font-weight: 800;
         text-transform: uppercase; letter-spacing: .04em; padding: 4px 8px; border-radius: 6px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        z-index: 3;
       }
       .s-mercadolivre { background: #ffe600; color: #2d3277; }
       .s-amazon { background: #232f3e; color: #ff9900; }
@@ -229,6 +253,7 @@
 
       .badge-quick {
         position: absolute; top: 10px; right: 10px; display: flex; gap: 4px;
+        z-index: 3;
       }
       .bug-pill {
         background: #ef4444; color: #fff; font-size: 10px; font-weight: 800;
@@ -610,7 +635,7 @@
               <div class="badge-quick">
                 ${d.priceBug ? `<span class="bug-pill"><i data-lucide="flame" size="11"></i> BUG</span>` : ""}
               </div>
-              <img src="${d.image || ''}" loading="lazy" onload="this.classList.add('on')" onerror="this.src='https://placehold.co/240x240?text=Sem+Foto'">
+              <img src="${d.image || ''}" alt="${esc(d.title)}" loading="lazy" onload="this.classList.add('on')" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'120\' height=\'120\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2364748b\' stroke-width=\'1.5\'><rect width=\'18\' height=\'18\' x=\'3\' y=\'3\' rx=\'2\'/><circle cx=\'9\' cy=\'9\' r=\'2\'/><path d=\'m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21\'/></svg>'; this.classList.add('on');">
             </div>
             <div class="card-body">
               <div class="meta-row">
