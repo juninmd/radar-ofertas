@@ -5,6 +5,17 @@ describe("classify", () => {
     expect(classify("Whey Protein Concentrado 900g")).toBe("suplementos");
     expect(classify("Creatina Monohidratada 300g")).toBe("suplementos");
   });
+  test("identifica eletrodomesticos e tvs", () => {
+    expect(classify("Geladeira Frost Free Brastemp 375L")).toBe("eletrodomesticos");
+    expect(classify("Lavadora de Roupas Electrolux 11kg")).toBe("eletrodomesticos");
+    expect(classify("Smart TV 55 Polegadas 4K UHD Samsung")).toBe("tv-audio");
+  });
+  test("identifica roupas e jogos", () => {
+    expect(classify("Tenis Nike Air Max Masculino")).toBe("roupas");
+    expect(classify("Camisa Polo Dry Fit")).toBe("roupas");
+    expect(classify("Console PlayStation 5 Edicao Digital")).toBe("jogos");
+    expect(classify("Jogo Nintendo Switch Mario Kart 8")).toBe("jogos");
+  });
   test("identifica armazenamento", () => {
     expect(classify("SSD 1TB NVMe M.2 Kingston")).toBe("armazenamento");
   });

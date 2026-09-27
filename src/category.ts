@@ -1,7 +1,11 @@
 // Classificação leve por palavra-chave (sem custo de IA). Usada p/ recomendação.
 const RULES: [string, string[]][] = [
-  ["suplementos", ["whey", "creatina", "bcaa", "protein", "albumina", "glutamina", "pré-treino", "pre treino"]],
-  ["eletroportateis", ["air fryer", "fritadeira", "cafeteira", "aspirador", "panela eletrica", "liquidificador", "batedeira", "sanduicheira", "microondas"]],
+  ["suplementos", ["whey", "creatina", "bcaa", "protein", "albumina", "glutamina", "pré-treino", "pre treino", "hipercalorico", "barra de proteina"]],
+  ["eletrodomesticos", ["geladeira", "refrigerador", "lavadora", "lava e seca", "fogao", "fogão", "cooktop", "micro-ondas", "microondas", "freezer"]],
+  ["roupas", ["camisa", "camiseta", "calca", "calça", "bermuda", "shorts", "tenis", "tênis", "jaqueta", "moletom", "polo", "meia", "cueca"]],
+  ["jogos", ["playstation", "ps5", "ps4", "xbox", "nintendo switch", "console", "joy-con", "dualsense", "game ", "jogos"]],
+  ["tv-audio", ["tv ", "smart tv", "oled", "qled", "soundbar", "fone", "headphone", "jbl", "4k"]],
+  ["eletroportateis", ["air fryer", "fritadeira", "cafeteira", "aspirador", "panela eletrica", "liquidificador", "batedeira", "sanduicheira"]],
   ["ferramentas", ["furadeira", "parafusadeira", "serra", "trena", "jogo de ferramentas", "chave de fenda", "chave phillips", "alicate", "esmerilhadeira"]],
   ["casa-utilidades", ["mop", "filtro de agua", "purificador", "panela de pressao", "varal", "organizad", "ventilador"]],
   ["armazenamento", ["ssd", "nvme", "hd ", "hdd", "pendrive", "cartão", "micro sd", "sd card"]],
@@ -10,7 +14,6 @@ const RULES: [string, string[]][] = [
   ["smart-home", ["echo", "alexa", "lampada", "lâmpada", "smart", "tomada"]],
   ["celulares", ["iphone", "galaxy", "smartphone", "celular", "redmi", "moto g", "xiaomi"]],
   ["computadores", ["notebook", "processador", "ryzen", "intel", "placa de vídeo", "rtx", "memória ram", "ddr4", "ddr5"]],
-  ["tv-audio", ["tv ", "smart tv", "soundbar", "fone", "jbl"]],
 ];
 
 export function classify(title: string): string {
@@ -54,7 +57,8 @@ const USEFUL_KEYWORDS = new Set([
   "air fryer", "fritadeira", "cafeteira", "aspirador", "panela eletrica", "liquidificador",
   "furadeira", "parafusadeira", "ferramentas", "mop", "purificador", "filtro", "ventilador",
   "monitor", "teclado", "mouse", "headset", "cadeira", "ssd", "nvme", "notebook",
-  "alexa", "echo", "smartphone", "celular", "power bank", "carregador"
+  "alexa", "echo", "smartphone", "celular", "power bank", "carregador",
+  "whey", "creatina", "geladeira", "lavadora", "fogao", "cooktop", "smart tv", "ps5", "xbox", "nintendo switch", "tenis"
 ]);
 
 const LOW_UTILITY_KEYWORDS = [
@@ -70,7 +74,19 @@ export function utilityScore(title: string, category: string): { score: number; 
     }
   }
 
-  const highCat = ["eletroportateis", "ferramentas", "casa-utilidades", "computadores", "armazenamento", "smart-home"].includes(category);
+  const highCat = [
+    "suplementos",
+    "eletrodomesticos",
+    "roupas",
+    "jogos",
+    "tv-audio",
+    "eletroportateis",
+    "ferramentas",
+    "casa-utilidades",
+    "computadores",
+    "armazenamento",
+    "smart-home"
+  ].includes(category);
   const matchedUseful = Array.from(USEFUL_KEYWORDS).some(k => t.includes(k));
 
   if (highCat || matchedUseful) {

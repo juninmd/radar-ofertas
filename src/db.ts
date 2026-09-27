@@ -4,7 +4,12 @@ import { dirname } from "node:path";
 import { config } from "./config.ts";
 import type { PriceStats, ProductRow, ScrapedProduct } from "./types.ts";
 
-mkdirSync(dirname(config.dbPath), { recursive: true });
+if (config.dbPath !== ":memory:") {
+  const dir = dirname(config.dbPath);
+  if (dir && dir !== ".") {
+    mkdirSync(dir, { recursive: true });
+  }
+}
 
 export const db = new Database(config.dbPath, { create: true });
 db.exec("PRAGMA journal_mode = WAL;");

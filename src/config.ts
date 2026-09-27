@@ -20,7 +20,7 @@ export const config = {
   // termos pesquisados nos e-commerces
   queries: env(
     "CRAWL_QUERIES",
-    "whey protein,ssd nvme,monitor gamer,cadeira gamer,echo dot,creatina,air fryer,parafusadeira,aspirador robo,cafeteira",
+    "whey protein,creatina,smart tv 4k,geladeira frost free,lavadora de roupas,ps5 console,jogos ps5,nintendo switch,tenis corrida,camisa polo,air fryer,parafusadeira,ssd nvme,monitor gamer,aspirador robo",
   )
     .split(",")
     .map((s) => s.trim())
@@ -29,7 +29,7 @@ export const config = {
   // teto por chamada de crawler: fonte lenta/travada (browser pendurado) não
   // pode segurar o ciclo inteiro e estourar o deadline do CronJob.
   crawlTimeoutMs: num("CRAWL_TIMEOUT_MS", 40000),
-  sources: env("CRAWL_SOURCES", "mercadolivre,amazon,magalu,kabum,aliexpress,shopee,zoom,buscape")
+  sources: env("CRAWL_SOURCES", "mercadolivre,amazon,magalu,zoom,buscape,casasbahia,extra,pontofrio,kabum,aliexpress,shopee")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),

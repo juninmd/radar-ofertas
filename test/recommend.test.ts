@@ -5,14 +5,18 @@ process.env.DB_PATH = ":memory:";
 
 let insertFeedback: typeof import("../src/db.ts").insertFeedback;
 let affinity: typeof import("../src/recommend.ts").affinity;
+let db: typeof import("../src/db.ts").db;
 
 beforeAll(async () => {
-  ({ insertFeedback } = await import("../src/db.ts"));
+  const dbMod = await import("../src/db.ts");
+  insertFeedback = dbMod.insertFeedback;
+  db = dbMod.db;
   ({ affinity } = await import("../src/recommend.ts"));
 });
 
 describe("recomendação por feedback", () => {
   test("curtir whey aumenta o multiplicador de futuras ofertas de whey", () => {
+    db.run("DELETE FROM feedback;");
     const before = affinity("Whey Protein Isolado 900g", "suplementos").multiplier;
     insertFeedback(null, "suplementos", "whey,protein", 1);
     insertFeedback(null, "suplementos", "whey,protein", 1);
