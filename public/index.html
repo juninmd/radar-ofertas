@@ -403,8 +403,8 @@
           <div class="kpi-card"><span class="val" id="k-best">—</span><span class="lbl">desconto máx</span></div>
         </div>
         <div class="right">
-          <button class="icon-btn" onclick="toggleTheme()" title="Alternar tema"><i data-lucide="moon" id="theme-icon" size="18"></i></button>
-          <button class="icon-btn" onclick="openQueriesModal()" title="Termos de busca"><i data-lucide="sliders-horizontal" size="18"></i></button>
+          <button class="icon-btn" onclick="toggleTheme()" title="Alternar tema" aria-label="Alternar tema"><i data-lucide="moon" id="theme-icon" size="18"></i></button>
+          <button class="icon-btn" onclick="openQueriesModal()" title="Termos de busca" aria-label="Termos de busca"><i data-lucide="sliders-horizontal" size="18"></i></button>
           <button id="btn-crawl" onclick="runCycle()"><i data-lucide="refresh-cw" size="15"></i> Varrer Ofertas</button>
           <button class="btn brand" onclick="load()"><i data-lucide="arrow-clockwise" size="15"></i> Atualizar</button>
         </div>
@@ -446,7 +446,7 @@
       <div class="modal">
         <div class="modal-header">
           <h3 id="m-title">Histórico de Preços</h3>
-          <button class="icon-btn" onclick="closeModal()"><i data-lucide="x" size="18"></i></button>
+          <button class="icon-btn" aria-label="Fechar" onclick="closeModal()"><i data-lucide="x" size="18"></i></button>
         </div>
         <div class="modal-body">
           <div class="stats-grid" id="m-stats"></div>
@@ -461,7 +461,7 @@
       <div class="modal">
         <div class="modal-header">
           <h3>Termos Monitorados nos E-commerces</h3>
-          <button class="icon-btn" onclick="closeQueriesModal()"><i data-lucide="x" size="18"></i></button>
+          <button class="icon-btn" aria-label="Fechar" onclick="closeQueriesModal()"><i data-lucide="x" size="18"></i></button>
         </div>
         <div class="modal-body">
           <p style="font-size:13px;color:var(--muted);margin-top:0;margin-bottom:16px">
@@ -659,9 +659,9 @@
               </div>
               <div class="actions-bar">
                 <button class="btn brand btn-buy" onclick="window.open('${d.url}','_blank')"><i data-lucide="external-link" size="15"></i> Ir à Loja</button>
-                <button class="icon-btn" title="Histórico e Gráfico" onclick="openModal(${d.id})"><i data-lucide="line-chart" size="16"></i></button>
-                <button class="icon-btn" title="Achei útil" onclick="vote(${d.id},1,this)"><i data-lucide="thumbs-up" size="16"></i></button>
-                <button class="icon-btn" title="Não é útil" onclick="vote(${d.id},-1,this)"><i data-lucide="thumbs-down" size="16"></i></button>
+                <button class="icon-btn" title="Histórico e Gráfico" aria-label="Histórico e Gráfico" onclick="openModal(${d.id})"><i data-lucide="line-chart" size="16"></i></button>
+                <button class="icon-btn" title="Achei útil" aria-label="Achei útil" onclick="vote(${d.id},1,this)"><i data-lucide="thumbs-up" size="16"></i></button>
+                <button class="icon-btn" title="Não é útil" aria-label="Não é útil" onclick="vote(${d.id},-1,this)"><i data-lucide="thumbs-down" size="16"></i></button>
               </div>
             </div>
           </div>`;
