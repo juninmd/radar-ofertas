@@ -5,7 +5,7 @@ preços, mantém **histórico**, detecta **promoções reais** (preço abaixo da
 histórica), **notifica no Telegram** e aprende com seu **feedback (👍/👎)** para
 priorizar as categorias que você curte. Análise opcional via **LiteLLM**.
 
-Stack: **Bun** + TypeScript + `bun:sqlite` nativo. Zero dependências externas.
+Stack: **Bun** + TypeScript + `bun:sqlite` nativo. Dependências: cheerio/jsdom (parsing) e playwright/puppeteer (fallback de browser anti-bot).
 
 ## Como funciona
 

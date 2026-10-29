@@ -43,6 +43,9 @@ export function startServer() {
       }
       rl.count++;
       rateLimits.set(ip, rl);
+      if (rateLimits.size > 1000) {
+        for (const [k, v] of rateLimits) if (now > v.resetTime) rateLimits.delete(k);
+      }
 
       if (rl.count > RATE_LIMIT_MAX) {
         log.warn(`Rate limit exceeded for IP: ${ip}`);
@@ -84,12 +87,13 @@ export function startServer() {
           });
         }
         else if (pathname === "/api/deals" && req.method === "GET") {
-          const limit = Number(url.searchParams.get("limit") ?? 50);
+          const raw = Number(url.searchParams.get("limit") ?? 50);
+          const limit = Math.min(Math.max(Number.isFinite(raw) ? Math.trunc(raw) : 50, 1), 200);
           const cacheKey = `deals_${limit}`;
           
           let deals = globalCache.get<any[]>(cacheKey);
           if (!deals) {
-            deals = dealService.getDashboardDeals(Math.min(Math.max(limit, 1), 200));
+            deals = dealService.getDashboardDeals(limit);
             globalCache.set(cacheKey, deals, 15000); // Cache for 15 seconds
           }
           
@@ -108,8 +112,7 @@ export function startServer() {
         }
         else if (pathname === "/api/crawl" && req.method === "POST") {
           const result = await runCrawlCycle();
-          globalCache.invalidate("deals_50");
-          globalCache.invalidate("deals_100");
+          globalCache.clear();
           response = json(result);
         }
         else if (pathname === "/api/queries" && req.method === "GET") {
