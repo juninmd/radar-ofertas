@@ -1,7 +1,7 @@
 {
   "name": "radar-ofertas",
   "version": "1.0.0",
-  "description": "Crawler de ofertas de e-commerce (Magalu, Amazon, Mercado Livre) com hist\u00f3rico de pre\u00e7os, detec\u00e7\u00e3o de promo\u00e7\u00e3o real, notifica\u00e7\u00e3o Telegram, feedback de recomenda\u00e7\u00e3o e an\u00e1lise via LiteLLM.",
+  "description": "Crawler de ofertas de e-commerce (Magalu, Amazon, Mercado Livre) com histórico de preços, detecção de promoção real, notificação Telegram, feedback de recomendação e análise via LiteLLM.",
   "type": "module",
   "module": "src/index.ts",
   "scripts": {
@@ -11,6 +11,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@juninmd/digest-kit": "^0.4.0",
     "cheerio": "^1.0.0-rc.12",
     "jsdom": "^23.0.0",
     "playwright": "^1.43.0",
