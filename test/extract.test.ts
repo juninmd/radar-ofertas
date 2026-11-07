@@ -18,7 +18,7 @@ describe("extractProductDescription", () => {
         </body>
       </html>
     `;
-    const res = extractProductDescription(html, { baseUrl: "https://loja.com.br/produto/123" });
+    const res = extractProductDescription(html);
     expect(res).not.toBeNull();
     expect(res?.title).toContain("Monitor Gamer");
     expect(res?.contentMarkdown).toContain("painel IPS");

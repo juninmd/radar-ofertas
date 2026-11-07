@@ -1,5 +1,5 @@
 import { log } from "../log.ts";
-import { extractArticleFromHtml, type ExtractedArticle } from "@juninmd/digest-kit/core";
+import { extractArticleFromHtml, type ExtractedArticle, type ExtractArticleOptions } from "@juninmd/digest-kit/core";
 
 const UAS = [
   // Desktop Chrome
@@ -94,7 +94,7 @@ export function extractNextData(html: string): unknown | null {
  */
 export function extractProductDescription(
   html: string,
-  options?: { baseUrl?: string; charThreshold?: number }
+  options?: ExtractArticleOptions
 ): ExtractedArticle | null {
   if (!html) return null;
   return extractArticleFromHtml(html, options);
