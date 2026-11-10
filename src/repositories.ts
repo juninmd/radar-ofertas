@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { config } from "./config.ts";
+import { ensureSchema } from "./schema.ts";
 import type { PriceStats, ProductRow, ScrapedProduct, PricePoint } from "./types.ts";
 
 /**
@@ -18,6 +19,7 @@ export class BaseRepository {
   private init() {
     this.db.exec("PRAGMA journal_mode = WAL;");
     this.db.exec("PRAGMA foreign_keys = ON;");
+    ensureSchema(this.db);
   }
 }
 
