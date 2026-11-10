@@ -14,7 +14,11 @@ const bool = (k: string, d = false) => {
 export const config = {
   runMode: env("RUN_MODE", "SERVER").toUpperCase(), // SERVER | CRAWL
   port: num("PORT", 3005),
-  dbPath: env("DB_PATH", "./data/radar.sqlite"),
+  // Resolvido a cada leitura: cada teste escolhe seu DB_PATH em runtime e não
+  // pode herdar o valor de outro arquivo de teste (importado antes).
+  get dbPath() {
+    return env("DB_PATH", "./data/radar.sqlite");
+  },
   logLevel: env("LOG_LEVEL", "info"),
 
   // termos pesquisados nos e-commerces
