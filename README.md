@@ -51,7 +51,14 @@ RUN_MODE=CRAWL bun run src/index.ts
 RUN_MODE=SERVER bun run src/index.ts
 ```
 
-Dashboard: lista as ofertas e permite curtir/não curtir (alimenta a recomendação).
+Dashboard (`public/index.html`, sem build):
+
+- **Radar ao vivo** — cada oferta é um ponto; quanto mais perto do centro, maior o desconto.
+- **Achado do momento** rotativo, KPIs (economia somada, bugs de preço, menor preço) que viram filtro.
+- Cards com faixa histórica mín–máx, sparkline, anel de score, favoritos e 👍/👎 (alimenta a recomendação).
+- Gaveta de detalhe com gráfico de histórico, motivos da oferta e navegação ←/→.
+- Filtros por loja, categoria, desconto mínimo, favoritos, menor preço, bug e em queda; grade ou lista.
+- Paleta de comandos (`Ctrl/⌘ K`) e atalhos (`/`, `G`, `T`, `R`, `?`); tema claro/escuro; mobile.
 
 ## API
 
