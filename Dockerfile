@@ -1,9 +1,10 @@
 FROM oven/bun:1.3-debian AS deps
 WORKDIR /app
-COPY package.json ./
+COPY package.json bun.lock ./
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_SKIP_DOWNLOAD=true
-RUN bun install --production
+# lockfile congelado: build reproduzível (antes resolvia versões a cada build)
+RUN bun install --production --frozen-lockfile
 
 FROM oven/bun:1.3-debian AS runtime
 WORKDIR /app

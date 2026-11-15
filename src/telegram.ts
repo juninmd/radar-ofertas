@@ -3,6 +3,7 @@ import { log } from "./log.ts";
 import { priceSeries } from "./db.ts";
 import type { DealView } from "./db.ts";
 import { isPriceBug } from "./deal.ts";
+import { seasonInfo } from "./season.ts";
 
 const fmt = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -43,25 +44,34 @@ export function buildCaption(d: DealView): string {
   const spark = sparkline(series);
   const isLowest = d.min_price > 0 && d.price <= d.min_price + 0.001;
   const economia = d.avg_price - d.price;
-  const priceBug = isPriceBug(d.discount_pct);
+  const flags = new Set((d.flags ?? "").split(",").filter(Boolean));
+  const priceBug = isPriceBug(d.discount_pct) && !flags.has("so-preco-de");
+  const season = seasonInfo();
 
-  const lines = priceBug
+  const ref = flags.has("so-preco-de") ? 'vs preço "de"' : "vs preço normal";
+  const header = priceBug
     ? [
         `⚠️🐞 <b>POSSÍVEL ERRO DE PREÇO</b> 🐞⚠️`,
         `<i>Preço muito abaixo do histórico — pode ser bug de precificação. Confira antes de comprar.</i>`,
-        `🏬 ${label} · 🏷️ ${d.category}`,
-        ``,
       ]
-    : [
-    `🔥 <b>OFERTA ${heat(d.score)}</b>`,
+    : [...(season.active ? [`🖤 <b>${season.label}</b>`] : []), `🔥 <b>OFERTA ${heat(d.score)}</b>`];
+  const lines = [
+    ...header,
     `🏬 ${label} · 🏷️ ${d.category}`,
     ``,
     `<b>${escapeHtml(d.title)}</b>`,
     ``,
     `💰 <b>${fmt(d.price)}</b>  <s>${fmt(d.avg_price)}</s>`,
-    `📉 <b>-${d.discount_pct.toFixed(0)}%</b> · economia de ${fmt(economia)} vs média`,
+    `📉 <b>-${d.discount_pct.toFixed(0)}%</b> · economia de ${fmt(economia)} ${ref}`,
   ];
-  if (isLowest) lines.push(`🏆 <b>MENOR PREÇO HISTÓRICO!</b>`);
+  if (isLowest || flags.has("menor-preco-historico")) lines.push(`🏆 <b>MENOR PREÇO HISTÓRICO!</b>`);
+  if (flags.has("caiu-mais")) lines.push(`🔻 <b>Caiu mais</b> desde o último alerta`);
+  if (flags.has("menor-entre-lojas")) lines.push(`🛒 Mais barato entre as lojas monitoradas`);
+  if (flags.has("preco-inflado-pre-evento")) lines.push(`🕵️ Comparado ao preço <b>antes da Black</b> (ignora a maquiagem)`);
+  else if (flags.has("preco-maquiado")) lines.push(`🕵️ Subiu antes de baixar — desconto medido no preço antigo`);
+  if (flags.has("so-preco-de")) lines.push(`ℹ️ Sem histórico ainda: desconto vs preço "de" da loja`);
+  const social = socialProof(d);
+  if (social) lines.push(social);
   lines.push(
     `📊 mín ${fmt(d.min_price)} · máx ${fmt(d.max_price)} · ${d.points} leituras`,
   );
@@ -70,6 +80,19 @@ export function buildCaption(d: DealView): string {
   if (d.ai_comment) lines.push(``, `🤖 <i>${escapeHtml(d.ai_comment)}</i>`);
   lines.push(``, `🔗 ${d.url}`);
   return lines.join("\n");
+}
+
+// "🏅 Mais vendido #2 · ⭐ 4,8 (12.345 avaliações)"
+export function socialProof(d: Pick<DealView, "best_seller_rank" | "badges" | "rating" | "reviews" | "sold_count">): string {
+  const parts: string[] = [];
+  if (d.best_seller_rank) parts.push(`🏅 Mais vendido #${d.best_seller_rank}`);
+  else if ((d.badges ?? "").includes("mais-vendido")) parts.push("🏅 Mais vendido");
+  if (d.rating) {
+    const n = d.reviews ? ` (${d.reviews.toLocaleString("pt-BR")} avaliações)` : "";
+    parts.push(`⭐ ${d.rating.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}${n}`);
+  }
+  if (d.sold_count) parts.push(`🛍️ ${d.sold_count.toLocaleString("pt-BR")}+ vendidos`);
+  return parts.join(" · ");
 }
 
 function escapeHtml(s: string) {
@@ -90,6 +113,15 @@ function keyboard(dealId: number) {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Espaça os envios: grupos/canais aceitam ~20 msg/min. Em rajada (Black
+// Friday, teto de 20/ciclo) o 429 virava perda de mensagem.
+let lastSend = 0;
+async function pace(): Promise<void> {
+  const wait = lastSend + config.telegramMinIntervalMs - Date.now();
+  if (wait > 0) await sleep(wait);
+  lastSend = Date.now();
+}
+
 // Envia ao Telegram respeitando o rate-limit: no 429, espera `retry_after`
 // e tenta de novo (até 2x). Sem isso, rajadas de ofertas tomam 429 e somem.
 async function sendTelegram(
@@ -98,6 +130,7 @@ async function sendTelegram(
   payload: Record<string, unknown>,
 ): Promise<Response> {
   for (let attempt = 0; ; attempt++) {
+    await pace();
     const res = await fetch(`${base}/${endpoint}`, {
       method: "POST",
       headers: { "content-type": "application/json" },

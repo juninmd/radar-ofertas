@@ -55,6 +55,52 @@ export const config = {
   // além de estourar o deadline do CronJob (1 chamada de IA por oferta postada).
   maxNotificationsPerCycle: num("MAX_NOTIFICATIONS_PER_CYCLE", 10),
 
+  // "Oferta real" exige histórico de verdade: N leituras não bastam se todas
+  // forem da mesma hora. Antes disso, só o preço "de" (com régua mais dura).
+  minHistoryHours: num("MIN_HISTORY_HOURS", 24),
+  // Preço "de" é frequentemente inflado no BR: sem histórico próprio, exige
+  // desconto maior e pesa menos no score.
+  listPriceMinDiscountPct: num("LISTPRICE_MIN_DISCOUNT_PCT", 20),
+  listPriceTrust: num("LISTPRICE_TRUST", 0.75),
+  // Notificar oferta medida SÓ contra o preço "de"? market = só se nenhuma
+  // outra loja vender mais barato (confirmação de mercado) | always | never.
+  // Fica no dashboard de qualquer forma; com 24h de histórico vira oferta real.
+  listPriceNotify: env("LISTPRICE_NOTIFY", "market").toLowerCase(),
+  // Re-oferta do mesmo produto: só se cair mais X% vs a última oferta, ou se a
+  // última tiver mais de N dias (antes era bloqueio eterno).
+  redealDropPct: num("REDEAL_DROP_PCT", 5),
+  redealDays: num("REDEAL_DAYS", 7),
+  // Outra loja vendendo o mesmo item mais barato (>X%) = não é oferta.
+  marketTolerancePct: num("MARKET_TOLERANCE_PCT", 3),
+  // Popularidade: pouco avaliado pontua menos; mais vendido pontua mais.
+  popularityWeight: num("POPULARITY_WEIGHT", 1),
+  // Listas "mais vendidos" (1 GET cada, independem de CRAWL_QUERIES).
+  bestsellerSources: env("BESTSELLER_SOURCES", "mercadolivre,amazon")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean),
+  // Intervalo mínimo entre mensagens (limite do Telegram ~20 msg/min por grupo).
+  telegramMinIntervalMs: num("TELEGRAM_MIN_INTERVAL_MS", 3200),
+
+  // ── Sazonalidade (Black Friday) ──
+  season: {
+    mode: env("SEASON_MODE", "auto").toLowerCase(), // auto | off | force
+    // Baseline "pré-evento": preços até esta data (default 1/nov do ano) contam
+    // como preço normal. Pega a maquiagem "metade do dobro".
+    baselineCutoff: env("BF_BASELINE_CUTOFF"),
+    baselineDays: num("BF_BASELINE_DAYS", 60),
+    crawlIntervalMin: num("BF_CRAWL_INTERVAL_MIN", 30), // Black November
+    peakCrawlIntervalMin: num("BF_PEAK_CRAWL_INTERVAL_MIN", 15), // semana da BF / Cyber Monday
+    maxNotificationsPerCycle: num("BF_MAX_NOTIFICATIONS_PER_CYCLE", 20),
+    queries: env(
+      "BF_QUERIES",
+      "iphone,smartphone samsung galaxy,smart tv 55,notebook,air fryer,fone bluetooth,smartwatch,geladeira,ps5,aspirador robo,kindle,echo dot",
+    )
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  },
+
   // bug de precificação: desconto absurdo (ex: PS5 por R$100) = erro de preço
   priceBugDiscountPct: num("PRICE_BUG_DISCOUNT_PCT", 70),
 
