@@ -9,6 +9,7 @@ import {
   parseMoney,
 } from "./base.ts";
 import { log } from "../log.ts";
+import { parseCount, parseRating } from "../popularity.ts";
 
 // Crawlers best-effort por HTML público de busca. Sites de e-commerce têm
 // anti-bot agressivo; quando bloqueado retorna []. Parsing tolerante a
@@ -143,6 +144,15 @@ export function parseAmazonProducts(html: string, query: string, max: number): S
     const imgM = b.match(/<img[^>]+class="s-image"[^>]+src="(https:\/\/[^"]+)"/) ||
                  b.match(/<img[^>]+src="(https:\/\/m\.media-amazon\.com[^"]+)"/);
 
+    // Prova social: nota, nº de avaliações, "mil+ compras no mês passado", selo.
+    const rating = parseRating(b.match(/(\d[.,]\d) de 5 estrelas/)?.[1]);
+    const reviews = parseCount(
+      b.match(/aria-label="([\d.]+) (?:classificações|avaliações)/)?.[1] ??
+        b.match(/s-underline-text[^>]*>\(?([\d.]+(?:\s*mil)?)\)?</)?.[1],
+    );
+    const soldCount = parseCount(b.match(/>([^<]{1,20}?)\s*compras? no mês passado/i)?.[1]);
+    const badges = /a-badge-text[^>]*>\s*Mais vendido/i.test(b) ? ["mais-vendido"] : [];
+
     out.push({
       source: "amazon",
       externalId: asin,
@@ -153,6 +163,10 @@ export function parseAmazonProducts(html: string, query: string, max: number): S
       listPrice,
       query,
       imageSource: "real",
+      rating,
+      reviews,
+      soldCount,
+      badges,
     });
   }
   return out;
@@ -251,9 +265,16 @@ function toProduct(o: Record<string, unknown>): Omit<ScrapedProduct, "query"> | 
   const rawPath = typeof o.url === "string" ? o.url : typeof o.path === "string" ? o.path : `/p/${id}/`;
   const canonical = rawPath.replace(/^\/magazinevoce(?=\/)/, "");
 
+  // avaliações no payload do Magalu: { rating: { score, count } }
+  const r = o.rating as { score?: unknown; count?: unknown } | undefined;
+  const rating = r && typeof r === "object" ? parseRating(String(r.score ?? "")) : undefined;
+  const reviews = r && typeof r === "object" && Number(r.count) > 0 ? Number(r.count) : undefined;
+
   return {
     source: "magalu",
     externalId: String(id),
+    rating,
+    reviews,
     title: decodeEntities(title.trim()),
     url: absoluteUrl(canonical, MAGALU_ORIGIN),
     image,

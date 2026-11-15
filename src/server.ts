@@ -1,6 +1,7 @@
 import { config } from "./config.ts";
 import { log } from "./log.ts";
-import { runCrawlCycle } from "./pipeline.ts";
+import { isCycleRunning, runCrawlCycle } from "./pipeline.ts";
+import { seasonTuning } from "./season.ts";
 import { pollCallbacks } from "./telegram.ts";
 import { DealService } from "./services.ts";
 import { globalCache } from "./cache.ts";
@@ -99,6 +100,28 @@ export function startServer() {
           
           response = json(deals);
         }
+        else if (pathname === "/api/top" && req.method === "GET") {
+          // melhores ofertas (1 por produto) da janela, por score — base do "Top do dia"
+          const hours = Math.min(Math.max(Number(url.searchParams.get("hours")) || 24, 1), 24 * 30);
+          const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 20, 1), 100);
+          const key = `top_${hours}_${limit}`;
+          let top = globalCache.get<any[]>(key);
+          if (!top) {
+            top = dealService.getTopDeals(hours, limit);
+            globalCache.set(key, top, 15000);
+          }
+          response = json(top);
+        }
+        else if (pathname === "/api/season" && req.method === "GET") {
+          const t = seasonTuning();
+          response = json({
+            ...t.season,
+            crawlIntervalMin: t.crawlIntervalMin,
+            maxNotificationsPerCycle: t.maxNotificationsPerCycle,
+            extraQueries: t.extraQueries,
+            cycleRunning: isCycleRunning(),
+          });
+        }
         else if (pathname === "/api/feedback" && req.method === "POST") {
           const body = (await req.json().catch(() => null)) as { dealId?: number; vote?: number } | null;
           const dealId = Number(body?.dealId);
@@ -109,6 +132,9 @@ export function startServer() {
             const ok = dealService.registerVote(dealId, vote);
             response = json({ ok }, ok ? 200 : 404);
           }
+        }
+        else if (pathname === "/api/crawl" && req.method === "POST" && isCycleRunning()) {
+          response = json({ error: "ciclo já em andamento" }, 409);
         }
         else if (pathname === "/api/crawl" && req.method === "POST") {
           const result = await runCrawlCycle();

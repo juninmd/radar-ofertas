@@ -13,6 +13,7 @@ import {
 } from "./browser.ts";
 import { crawlCasasBahia, crawlPontofrio, crawlExtra } from "./extra.ts";
 import { crawlZoom, crawlBuscape } from "./mosaico.ts";
+import { crawlAmazonBestsellers, crawlMercadoLivreBestsellers } from "./bestsellers.ts";
 
 type Crawler = (q: string, max: number) => Promise<ScrapedProduct[]>;
 
@@ -127,22 +128,40 @@ async function withConcurrency<T>(tasks: (() => Promise<T>)[], limit: number): P
   return results;
 }
 
+// Listas "mais vendidos": 1 tarefa por loja, independente dos termos de busca.
+const BESTSELLERS: Record<string, () => Promise<ScrapedProduct[]>> = {
+  mercadolivre: () => crawlMercadoLivreBestsellers(),
+  amazon: () => crawlAmazonBestsellers(),
+};
+
 // Coleta 100% real: fontes em paralelo, consultas em série dentro da fonte.
-export async function crawlAll(): Promise<ScrapedProduct[]> {
-  const queries = getSearchQueries();
+// `extraQueries` = termos sazonais (Black Friday) somados aos cadastrados.
+export async function crawlAll(extraQueries: string[] = []): Promise<ScrapedProduct[]> {
+  const queries = [...new Set([...getSearchQueries(), ...extraQueries].map((q) => q.trim()).filter(Boolean))];
   const started = Date.now();
 
-  const perSource = await withConcurrency(
-    config.sources.map((source) => async () => {
-      try {
-        return await crawlSource(source, queries);
-      } catch (e) {
-        log.warn(`fonte ${source} abortada`, (e as Error).message);
-        return [] as ScrapedProduct[];
-      }
-    }),
-    config.crawlConcurrency,
-  );
+  const guard = (label: string, fn: () => Promise<ScrapedProduct[]>) => async () => {
+    try {
+      return await fn();
+    } catch (e) {
+      log.warn(`fonte ${label} abortada`, (e as Error).message);
+      return [] as ScrapedProduct[];
+    }
+  };
+  const tasks = [
+    ...config.bestsellerSources
+      .filter((s) => BESTSELLERS[s])
+      .map((s) =>
+        guard(`${s}/mais-vendidos`, async () => {
+          // várias páginas por loja: teto maior que o de uma busca
+          const items = await withTimeout(BESTSELLERS[s](), config.crawlTimeoutMs * 4, `${s}/mais-vendidos`);
+          log.info(`[real] ${s}/mais-vendidos -> ${items.length}`);
+          return items;
+        }),
+      ),
+    ...config.sources.map((source) => guard(source, () => crawlSource(source, queries))),
+  ];
+  const perSource = await withConcurrency(tasks, config.crawlConcurrency);
 
   const raw = perSource.flat();
   const all = sanitize(raw);

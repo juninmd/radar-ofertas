@@ -1022,6 +1022,19 @@
         if (t === "rising") return `<span class="tag bad"><i data-lucide="trending-up"></i>subindo</span>`;
         return `<span class="tag"><i data-lucide="minus"></i>estável</span>`;
       }
+      // sinais de "oferta de verdade" vindos do backend (flags + prova social)
+      function signalTags(d) {
+        const f = new Set(d.flags || []);
+        const out = [];
+        if (d.best_seller_rank) out.push(`<span class="tag good"><i data-lucide="medal"></i>mais vendido #${d.best_seller_rank}</span>`);
+        else if (f.has("mais-vendido")) out.push(`<span class="tag good"><i data-lucide="medal"></i>mais vendido</span>`);
+        if (d.rating) out.push(`<span class="tag"><i data-lucide="star"></i>${String(d.rating).replace(".", ",")}${d.reviews ? ` (${Number(d.reviews).toLocaleString("pt-BR")})` : ""}</span>`);
+        if (f.has("menor-entre-lojas")) out.push(`<span class="tag good"><i data-lucide="store"></i>menor entre lojas</span>`);
+        if (f.has("caiu-mais")) out.push(`<span class="tag good"><i data-lucide="arrow-down"></i>caiu mais</span>`);
+        if (f.has("preco-inflado-pre-evento") || f.has("preco-maquiado")) out.push(`<span class="tag warn"><i data-lucide="eye"></i>vs preço antes da alta</span>`);
+        if (f.has("so-preco-de")) out.push(`<span class="tag warn" title="Sem histórico próprio ainda: desconto calculado sobre o preço 'de' da loja"><i data-lucide="info"></i>só preço "de"</span>`);
+        return out.join("");
+      }
       function cardHTML(d, i) {
         const pid = d.product_id ?? d.id;
         const fav = S.favs.has(pid), v = S.votes[d.id] || 0;
@@ -1041,7 +1054,7 @@
             <a class="ctitle" href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener" title="${esc(d.title)}">${esc(d.title)}</a>
             <div class="prices"><span class="now">${brl(d.price)}</span>${d.avg_price > d.price ? `<span class="was">${brl(d.avg_price)}</span>` : ""}${savings(d) >= 1 ? `<span class="save">−${brl0(savings(d))}</span>` : ""}</div>
             <div class="viz">${rangeBar(d)}${sparkSVG(d.series, color)}</div>
-            <div class="tags">${isLow(d) ? `<span class="tag good"><i data-lucide="award"></i>menor preço já visto</span>` : ""}${trendTag(d)}${d.points ? `<span class="tag"><i data-lucide="activity"></i>${d.points} leituras</span>` : ""}</div>
+            <div class="tags">${signalTags(d)}${isLow(d) ? `<span class="tag good"><i data-lucide="award"></i>menor preço já visto</span>` : ""}${trendTag(d)}${d.points ? `<span class="tag"><i data-lucide="activity"></i>${d.points} leituras</span>` : ""}</div>
             ${d.ai_comment ? `<div class="ai"><i data-lucide="sparkles"></i>${esc(d.ai_comment)}</div>` : ""}
             <div class="cfoot">
               ${scoreRing(d.score)}
@@ -1152,7 +1165,7 @@
               <div class="meta" style="justify-content:flex-start;gap:10px"><span class="cat"><i data-lucide="${catIcon(d.category)}"></i>${esc(catName(d.category))}</span><span>· visto ${ago(d.created_at)}</span></div>
               <h2 class="d-title" id="d-title">${esc(d.title)}</h2>
               <div class="prices"><span class="now" style="font-size:30px">${brl(d.price)}</span>${d.avg_price > d.price ? `<span class="was">${brl(d.avg_price)}</span>` : ""}</div>
-              <div class="tags">${d.priceBug ? `<span class="tag bad"><i data-lucide="flame"></i>bug de preço</span>` : ""}${isLow(d) ? `<span class="tag good"><i data-lucide="award"></i>menor preço já visto</span>` : ""}${trendTag(d)}</div>
+              <div class="tags">${d.priceBug ? `<span class="tag bad"><i data-lucide="flame"></i>bug de preço</span>` : ""}${signalTags(d)}${isLow(d) ? `<span class="tag good"><i data-lucide="award"></i>menor preço já visto</span>` : ""}${trendTag(d)}</div>
             </div>
           </div>
           <div class="stats">

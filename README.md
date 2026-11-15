@@ -5,7 +5,7 @@ preços, mantém **histórico**, detecta **promoções reais** (preço abaixo da
 histórica), **notifica no Telegram** e aprende com seu **feedback (👍/👎)** para
 priorizar as categorias que você curte. Análise opcional via **LiteLLM**.
 
-Stack: **Bun** + TypeScript + `bun:sqlite` nativo. Dependências: cheerio/jsdom (parsing) e playwright/puppeteer (fallback de browser anti-bot).
+Stack: **Bun** + TypeScript + `bun:sqlite`, `Bun.serve`, `Bun.SQL` (Postgres) e `bun test` nativos. Dependências: cheerio (parsing) e puppeteer (fallback de browser anti-bot).
 
 ## Como funciona
 
@@ -38,6 +38,27 @@ crawl (ML/Amazon/Magalu) ──▶ price_history ──▶ detecção de oferta 
    máximo `MAX_NOTIFICATIONS_PER_CYCLE` mensagens, priorizando o maior desconto
    anunciado; as demais ofertas ficam gravadas no histórico e no dashboard.
 
+## Oferta de verdade (anti "metade do dobro")
+
+- **Referência robusta**: mediana do histórico (60d), calculada **sem** a leitura atual — picos não inflam a média e o preço avaliado não puxa a própria referência.
+- **Subiu antes de baixar**: se a mediana recente está acima da de >14 dias, o desconto é medido no preço antigo (flag `preco-maquiado`).
+- **Black Friday**: compara com o preço **antes de 1/nov** (`BF_BASELINE_CUTOFF`), ignorando a maquiagem de outubro/novembro.
+- **Mercado**: o mesmo produto (casado por título + números de modelo/capacidade) mais barato em outra loja **derruba** a oferta; ser o menor entre lojas dá bônus.
+- **Histórico mínimo de 24h** (`MIN_HISTORY_HOURS`). Antes disso só vale o preço "de" do site, com régua mais dura (≥20%, ≥30% na temporada) e **sem notificar** salvo confirmação de mercado (`LISTPRICE_NOTIFY=market`).
+- **Re-oferta**: o mesmo produto volta a alertar se **cair mais** `REDEAL_DROP_PCT`% (flag `caiu-mais`) — antes era bloqueado para sempre.
+- **Ranking do ciclo**: avalia tudo primeiro e gasta o teto de mensagens nas maiores pontuações (não nas primeiras coletadas).
+
+## Mais vendidos
+
+- `BESTSELLER_SOURCES=mercadolivre,amazon`: lê `mercadolivre.com.br/mais-vendidos` (~180 produtos ranqueados, 1 GET) e `amazon.com.br/gp/bestsellers/*` (best-effort).
+- Nota, nº de avaliações, "compras no mês" e selo "Mais vendido" viram **multiplicador de popularidade** no score (nota < 3,8 penaliza). Peso em `POPULARITY_WEIGHT`.
+
+## Black Friday
+
+`SEASON_MODE=auto` (padrão) detecta o calendário: **Black November** (1/nov →), **semana da BF** (terça → domingo) e **Cyber Monday**.
+Na temporada: coleta a cada `BF_CRAWL_INTERVAL_MIN` / `BF_PEAK_CRAWL_INTERVAL_MIN`, teto `BF_MAX_NOTIFICATIONS_PER_CYCLE`, termos extras `BF_QUERIES`, selo 🖤 no Telegram e envio espaçado (`TELEGRAM_MIN_INTERVAL_MS`, ~20 msg/min).
+Ciclos nunca se sobrepõem (POST `/api/crawl` durante um ciclo → 409). `SEASON_MODE=force` testa o modo BF a qualquer momento.
+
 ## Rodar local
 
 ```bash
@@ -66,6 +87,8 @@ Dashboard (`public/index.html`, sem build):
 |---|---|---|
 | GET | `/health` | healthcheck |
 | GET | `/api/deals?limit=N` | ofertas recentes |
+| GET | `/api/top?hours=24&limit=20` | melhores ofertas (1 por produto) por score |
+| GET | `/api/season` | fase da temporada (Black Friday) e ajustes ativos |
 | GET | `/api/stats` | feedback agregado por categoria |
 | POST | `/api/feedback` | `{ "dealId": 1, "vote": 1 \| -1 }` |
 | POST | `/api/crawl` | dispara um ciclo manualmente |

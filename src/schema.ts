@@ -57,18 +57,36 @@ CREATE TABLE IF NOT EXISTS feedback (
 CREATE INDEX IF NOT EXISTS idx_feedback_cat ON feedback(category);
 `);
 
-  // Schema migration: ensure image_source column exists
-  const info = db.query("PRAGMA table_info(products);").all() as any[];
-  const hasImageSource = info.some((col: any) => col.name === "image_source");
-  if (!hasImageSource) {
+  // Migrações aditivas (bancos antigos): coluna nova só entra se faltar.
+  addColumns(db, "products", {
+    image_source: "TEXT DEFAULT 'unknown'",
+    rating: "REAL",
+    reviews: "INTEGER",
+    sold_count: "INTEGER",
+    best_seller_rank: "INTEGER",
+    badges: "TEXT NOT NULL DEFAULT ''",
+  });
+  addColumns(db, "deals", { flags: "TEXT NOT NULL DEFAULT ''" });
+  db.exec("CREATE INDEX IF NOT EXISTS idx_deals_product ON deals(product_id, created_at DESC);");
+}
+
+function addColumns(db: Database, table: string, cols: Record<string, string>): void {
+  const have = new Set((db.query(`PRAGMA table_info(${table});`).all() as { name: string }[]).map((c) => c.name));
+  for (const [name, def] of Object.entries(cols)) {
+    if (have.has(name)) continue;
     try {
-      db.exec(`ALTER TABLE products ADD COLUMN image_source TEXT DEFAULT 'unknown';`);
-      console.log("[DB] Added image_source column to products table");
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${def};`);
     } catch (e) {
-      console.log(
-        "[DB] Note: image_source column migration failed, will work without it:",
-        (e as Error).message,
-      );
+      console.log(`[DB] migração ${table}.${name} falhou:`, (e as Error).message);
     }
   }
 }
+
+// SELECT único da visão de oferta (dashboard, Telegram, API).
+export const DEAL_SELECT = `SELECT d.id, d.product_id, p.title, p.url, p.source, p.category, p.image, p.image_source,
+  d.price, d.avg_price, d.discount_pct, d.score, d.reasons, d.flags, d.ai_comment, d.created_at,
+  p.rating, p.reviews, p.sold_count, p.best_seller_rank, p.badges,
+  (SELECT MIN(price) FROM price_history WHERE product_id = p.id) min_price,
+  (SELECT MAX(price) FROM price_history WHERE product_id = p.id) max_price,
+  (SELECT COUNT(*) FROM price_history WHERE product_id = p.id) points
+FROM deals d JOIN products p ON p.id = d.product_id`;

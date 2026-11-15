@@ -8,6 +8,12 @@ export interface ScrapedProduct {
   image?: string;
   query: string; // termo de busca que originou
   imageSource?: "real" | "demo"; // indicates image reality
+  // ── sinais de popularidade (todos opcionais; ausência = neutro) ──
+  rating?: number; // nota média 0..5
+  reviews?: number; // nº de avaliações
+  soldCount?: number; // vendidos (ML "+1000 vendidos", Amazon "mil+ compras no mês")
+  bestSellerRank?: number; // posição em lista "mais vendidos" (1 = topo)
+  badges?: string[]; // ex.: "mais-vendido", "oferta-do-dia"
 }
 
 export interface ProductRow {
@@ -31,6 +37,24 @@ export interface PriceStats {
   min: number;
   max: number;
   min30d?: number;
+  // ── baseline robusto (opcionais p/ compatibilidade) ──
+  median?: number; // mediana da janela: imune a picos isolados
+  olderMedian?: number; // mediana das leituras com >14 dias (antes de uma possível "maquiagem")
+  spanHours?: number; // horas entre a 1ª e a última leitura
+  preEventMedian?: number; // mediana antes do evento sazonal (ex.: preço de outubro na Black Friday)
+  preEventCount?: number;
+}
+
+export interface MarketRef {
+  minOther: number; // menor preço do MESMO produto em outra loja neste ciclo
+  source: string; // loja do menor preço
+  stores: number; // nº de lojas que vendem o produto
+}
+
+export interface EvalContext {
+  popularity?: { multiplier: number; reason: string; isBestSeller: boolean };
+  market?: MarketRef | null;
+  season?: { active: boolean; label: string; strictListPrice: boolean };
 }
 
 export interface DealEval {
@@ -41,4 +65,5 @@ export interface DealEval {
   zscore: number; // (price - avg) / std (negativo = barato)
   score: number; // 0..1 combinado com recomendação
   reasons: string[];
+  flags?: string[]; // marcadores curtos p/ UI/Telegram (menor-preco-historico, mais-vendido, ...)
 }
