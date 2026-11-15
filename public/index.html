@@ -808,7 +808,7 @@
       /* ================= Dados ================= */
       async function load({ silent = false } = {}) {
         try {
-          const r = await fetch("/api/deals?limit=200");
+          const r = await fetch("/api/deals?limit=5000");
           if (!r.ok) throw new Error("HTTP " + r.status);
           const data = await r.json();
           const ids = new Set(data.map((d) => d.id));

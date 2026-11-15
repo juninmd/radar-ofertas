@@ -1,6 +1,7 @@
 import type { ScrapedProduct } from "../types.ts";
 import { decodeEntities, fetchJson } from "./base.ts";
 import { log } from "../log.ts";
+import { config } from "../config.ts";
 
 // ── VTEX genérico ───────────────────────────────────────────────────────────
 // Lojas VTEX expõem a API pública de catálogo. Um único parser cobre todas;
@@ -17,10 +18,19 @@ interface VtexProduct {
   }[];
 }
 
+const VTEX_PAGE = 50; // teto da API pública por requisição
+
 async function crawlVtex(host: string, source: string, query: string, max: number): Promise<ScrapedProduct[]> {
-  const url = `https://${host}/api/catalog_system/pub/products/search/${encodeURIComponent(query)}?map=ft&_from=0&_to=${Math.max(0, max - 1)}`;
-  const data = await fetchJson<VtexProduct[]>(url, 12000, { referer: `https://${host}/` });
-  if (!Array.isArray(data) || data.length === 0) {
+  const data: VtexProduct[] = [];
+  for (let page = 0; page < config.pagesPerQuery && data.length < max; page++) {
+    const from = page * VTEX_PAGE;
+    const url = `https://${host}/api/catalog_system/pub/products/search/${encodeURIComponent(query)}?map=ft&_from=${from}&_to=${from + VTEX_PAGE - 1}`;
+    const chunk = await fetchJson<VtexProduct[]>(url, 12000, { referer: `https://${host}/` });
+    if (!Array.isArray(chunk) || chunk.length === 0) break;
+    data.push(...chunk);
+    if (chunk.length < VTEX_PAGE) break;
+  }
+  if (data.length === 0) {
     log.debug(`VTEX ${source} "${query}" -> sem dados`);
     return [];
   }

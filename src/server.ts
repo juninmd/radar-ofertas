@@ -89,7 +89,7 @@ export function startServer() {
         }
         else if (pathname === "/api/deals" && req.method === "GET") {
           const raw = Number(url.searchParams.get("limit") ?? 50);
-          const limit = Math.min(Math.max(Number.isFinite(raw) ? Math.trunc(raw) : 50, 1), 200);
+          const limit = Math.min(Math.max(Number.isFinite(raw) ? Math.trunc(raw) : 50, 1), config.maxDealsApi);
           const cacheKey = `deals_${limit}`;
           
           let deals = globalCache.get<any[]>(cacheKey);

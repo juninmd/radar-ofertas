@@ -1,5 +1,6 @@
 import type { ScrapedProduct } from "../types.ts";
 import { decodeEntities, extractNextData, fetchHtml, parseMoney } from "./base.ts";
+import { config } from "../config.ts";
 import { log } from "../log.ts";
 
 // ── Comparadores Mosaico (Zoom / Buscapé) ───────────────────────────────────
@@ -34,8 +35,14 @@ function titleCase(query: string): string {
 }
 
 async function search(host: string, query: string): Promise<MosaicoHit[]> {
-  const html = await fetchHtml(`https://${host}/search?q=${encodeURIComponent(query)}`);
-  return html ? hits(extractNextData(html)) : [];
+  const all: MosaicoHit[] = [];
+  for (let page = 1; page <= config.pagesPerQuery; page++) {
+    const html = await fetchHtml(`https://${host}/search?q=${encodeURIComponent(query)}${page > 1 ? `&page=${page}` : ""}`);
+    const list = html ? hits(extractNextData(html)) : [];
+    if (list.length === 0) break;
+    all.push(...list);
+  }
+  return all;
 }
 
 async function crawlMosaico(host: string, source: string, query: string, max: number): Promise<ScrapedProduct[]> {

@@ -9,6 +9,7 @@ import {
   parseMoney,
 } from "./base.ts";
 import { log } from "../log.ts";
+import { config } from "../config.ts";
 import { parseCount, parseRating } from "../popularity.ts";
 
 // Crawlers best-effort por HTML público de busca. Sites de e-commerce têm
@@ -22,8 +23,20 @@ function absoluteUrl(raw: unknown, origin: string): string {
   return origin + (raw.startsWith("/") ? raw : `/${raw}`);
 }
 
+// Paginação do ML: 48 itens/página, offset no sufixo "_Desc_<n>" (n = 1 + 48*pág).
 export async function crawlMercadoLivre(query: string, max: number): Promise<ScrapedProduct[]> {
-  const url = `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}`;
+  const out: ScrapedProduct[] = [];
+  for (let page = 0; page < config.pagesPerQuery && out.length < max; page++) {
+    const slug = encodeURIComponent(query.trim()).replace(/%20/g, "-");
+    const url = `https://lista.mercadolivre.com.br/${slug}${page ? `_Desc_${1 + page * 48}` : ""}`;
+    const items = await crawlMercadoLivrePage(url, query, max - out.length);
+    if (items.length === 0) break;
+    out.push(...items);
+  }
+  return out;
+}
+
+async function crawlMercadoLivrePage(url: string, query: string, max: number): Promise<ScrapedProduct[]> {
   const html = await fetchHtml(url);
   if (!html || html.length < 5000) {
     log.debug(`ML "${query}" bloqueado ou sem dados (${html?.length || 0} bytes)`);

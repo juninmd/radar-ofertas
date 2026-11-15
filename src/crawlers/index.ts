@@ -59,14 +59,15 @@ export function sanitize(items: ScrapedProduct[]): ScrapedProduct[] {
   const out: ScrapedProduct[] = [];
   for (const p of items) {
     if (!p?.source || !p.externalId || !p.title || !p.url) continue;
-    if (p.title.trim().length < 6) continue;
+    if (p.title.trim().length < 6 || !/\p{L}{3}/u.test(p.title)) continue;
     if (!/^https?:\/\//.test(p.url)) continue;
     if (!Number.isFinite(p.price) || p.price <= 0 || p.price > MAX_PLAUSIBLE_PRICE) continue;
     const key = `${p.source}:${p.externalId}`;
     if (seen.has(key)) continue;
     seen.add(key);
+    // "de" > 50x o preço atual é lixo de parsing (centavos/escala), não promoção.
     const listPrice =
-      Number.isFinite(p.listPrice as number) && (p.listPrice as number) > p.price
+      Number.isFinite(p.listPrice as number) && (p.listPrice as number) > p.price && (p.listPrice as number) <= p.price * 50
         ? p.listPrice
         : undefined;
     out.push({ ...p, title: p.title.trim(), listPrice });
@@ -164,6 +165,11 @@ export async function crawlAll(extraQueries: string[] = []): Promise<ScrapedProd
   const perSource = await withConcurrency(tasks, config.crawlConcurrency);
 
   const raw = perSource.flat();
+  // homologação do scrap: contagem por fonte; fonte com 0 itens = bloqueada/quebrada
+  const bySource = new Map<string, number>();
+  for (const p of raw) bySource.set(p.source, (bySource.get(p.source) ?? 0) + 1);
+  for (const s of config.sources) if (!bySource.has(s)) log.warn(`[saúde] fonte ${s} retornou 0 itens`);
+  log.info(`[saúde] itens por fonte: ${[...bySource].map(([k, v]) => `${k}=${v}`).join(" ")}`);
   const all = sanitize(raw);
   const dropped = raw.length - all.length;
   log.info(

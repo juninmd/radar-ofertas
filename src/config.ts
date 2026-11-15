@@ -24,16 +24,20 @@ export const config = {
   // termos pesquisados nos e-commerces
   queries: env(
     "CRAWL_QUERIES",
-    "whey protein,creatina,smart tv 4k,geladeira frost free,lavadora de roupas,ps5 console,jogos ps5,nintendo switch,tenis corrida,camisa polo,air fryer,parafusadeira,ssd nvme,monitor gamer,aspirador robo",
+    "whey protein,creatina,smart tv 4k,geladeira frost free,lavadora de roupas,ps5 console,jogos ps5,nintendo switch,tenis corrida,camisa polo,air fryer,parafusadeira,ssd nvme,monitor gamer,aspirador robo,iphone,smartphone samsung,notebook,fone bluetooth,smartwatch,caixa de som bluetooth,microondas,fogao 5 bocas,ar condicionado inverter,ventilador,cafeteira,liquidificador,fritadeira eletrica,panela de pressao eletrica,colchao queen,sofa retratil,guarda roupa,cadeira gamer,mesa de escritorio,bicicleta,esteira ergometrica,halter,whey isolado,pre treino,tenis nike,tenis adidas,chuteira,mochila,perfume importado,perfume masculino,maquiagem,secador de cabelo,barbeador,fralda,carrinho de bebe,racao cachorro,pneu aro 15,furadeira,kit ferramentas,placa de video,processador ryzen,memoria ram ddr5,teclado mecanico,mouse gamer,tablet,kindle,echo dot,smart tv 55,smart tv 50,lava e seca,freezer,purificador de agua,cama box,tv 65 polegadas,headset gamer,impressora,roteador wifi,camera de seguranca,jogo xbox,controle ps5,livros mais vendidos,suplemento vitaminico,cerveja,vinho,cafe em capsulas",
   )
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean),
-  maxPerQuery: num("MAX_PER_QUERY", 8),
+  maxPerQuery: num("MAX_PER_QUERY", 40),
+  // páginas por busca (paginação VTEX/ML/Zoom); meta de coleta ≥ 5k ofertas/ciclo
+  pagesPerQuery: num("PAGES_PER_QUERY", 3),
+  // teto de ofertas devolvidas pela API/dashboard
+  maxDealsApi: num("MAX_DEALS_API", 5000),
   // teto por chamada de crawler: fonte lenta/travada (browser pendurado) não
   // pode segurar o ciclo inteiro e estourar o deadline do CronJob.
-  crawlTimeoutMs: num("CRAWL_TIMEOUT_MS", 40000),
-  sources: env("CRAWL_SOURCES", "mercadolivre,amazon,magalu,zoom,buscape,casasbahia,extra,pontofrio,kabum,aliexpress,shopee")
+  crawlTimeoutMs: num("CRAWL_TIMEOUT_MS", 60000),
+  sources: env("CRAWL_SOURCES", "mercadolivre,magalu,amazon,kabum,casasbahia,pontofrio,extra,zoom,buscape")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),

@@ -23,7 +23,7 @@ const ML_BESTSELLERS = "https://www.mercadolivre.com.br/mais-vendidos";
  * (A busca lista.mercadolivre.com.br costuma cair no "suspicious-traffic";
  * esta página não.)
  */
-export function parseMlBestsellers(html: string, max = 200): ScrapedProduct[] {
+export function parseMlBestsellers(html: string, max = 5000): ScrapedProduct[] {
   const out: ScrapedProduct[] = [];
   const sections = html.split(/sbc-products-carousel__title[^>]*>/).slice(1);
   for (const sec of sections) {
@@ -71,7 +71,7 @@ export function parseMlBestsellers(html: string, max = 200): ScrapedProduct[] {
   return out;
 }
 
-export async function crawlMercadoLivreBestsellers(max = 200): Promise<ScrapedProduct[]> {
+export async function crawlMercadoLivreBestsellers(max = 5000): Promise<ScrapedProduct[]> {
   const html = await fetchHtml(ML_BESTSELLERS, 20000);
   if (!html || html.length < 5000) return [];
   const out = parseMlBestsellers(html, max);
