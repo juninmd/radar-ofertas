@@ -83,7 +83,7 @@ function addColumns(db: Database, table: string, cols: Record<string, string>): 
 }
 
 // SELECT único da visão de oferta (dashboard, Telegram, API).
-export const DEAL_SELECT = `SELECT d.id, d.product_id, p.title, p.url, p.source, p.category, p.image, p.image_source,
+export const DEAL_SELECT = `SELECT d.id, d.product_id, p.external_id, p.title, p.url, p.source, p.category, p.image, p.image_source,
   d.price, d.avg_price, d.discount_pct, d.score, d.reasons, d.flags, d.ai_comment, d.created_at,
   p.rating, p.reviews, p.sold_count, p.best_seller_rank, p.badges,
   (SELECT MIN(price) FROM price_history WHERE product_id = p.id) min_price,

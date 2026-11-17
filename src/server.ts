@@ -1,3 +1,4 @@
+import { isAdminRequest } from "./adminAuth.ts";
 import { config } from "./config.ts";
 import { log } from "./log.ts";
 import { isCycleRunning, runCrawlCycle } from "./pipeline.ts";
@@ -27,6 +28,9 @@ const json = (data: unknown, status = 200, extraHeaders = {}) =>
 const DASHBOARD = Bun.file(new URL("../public/index.html", import.meta.url));
 
 export function startServer() {
+  if (!process.env.ADMIN_TOKEN?.trim()) {
+    log.warn("ADMIN_TOKEN não configurado: /api/crawl e /api/queries aceitam escrita sem token");
+  }
   const server = Bun.serve({
     port: config.port,
     idleTimeout: 60,
@@ -58,8 +62,8 @@ export function startServer() {
         return new Response(null, {
           headers: {
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-Token",
           }
         });
       }
@@ -67,7 +71,13 @@ export function startServer() {
       let response: Response;
 
       try {
-        if (pathname === "/health") {
+        const adminWrite =
+          (pathname === "/api/crawl" && req.method === "POST") ||
+          (pathname === "/api/queries" && (req.method === "POST" || req.method === "DELETE"));
+        if (adminWrite && !isAdminRequest(req)) {
+          response = json({ error: "Token de admin inválido" }, 401);
+        }
+        else if (pathname === "/health") {
           response = json({ ok: true, ts: Date.now() });
         }
         else if (pathname === "/api/system/metrics") {

@@ -50,6 +50,7 @@ export const config = {
   zThreshold: num("Z_THRESHOLD", 1.2), // preço < média - z*desvio
   minDiscountPct: num("MIN_DISCOUNT_PCT", 12), // ou desconto >= % sobre a média
   notifyScore: num("NOTIFY_SCORE", 0.5), // score combinado mínimo p/ notificar
+  skipAiPass: bool("AI_SKIP_PASS", true), // veredito PASSE da IA não vira alerta no Telegram
   // Teto de notificações por ciclo. Com muitas fontes, o 1o ciclo de um produto
   // novo dispara pelo preço "de" e um lote grande viraria dezenas de mensagens —
   // além de estourar o deadline do CronJob (1 chamada de IA por oferta postada).

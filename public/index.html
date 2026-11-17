@@ -9,6 +9,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
     <script>
+      // Ações de admin exigem ADMIN_TOKEN no servidor; o token fica só neste navegador.
+      async function adminFetch(url, init = {}) {
+        const withToken = (t) => ({ ...init, headers: { ...(init.headers || {}), ...(t ? { "x-admin-token": t } : {}) } });
+        let saved = "";
+        try { saved = localStorage.getItem("radarAdminToken") || ""; } catch {}
+        const r = await fetch(url, withToken(saved));
+        if (r.status !== 401) return r;
+        const typed = (window.prompt("Token de admin do Radar de Ofertas:") || "").trim();
+        if (!typed) return r;
+        try { localStorage.setItem("radarAdminToken", typed); } catch {}
+        return fetch(url, withToken(typed));
+      }
       // Tema aplicado antes do primeiro paint (evita flash).
       (function () {
         var t = null;
@@ -1127,7 +1139,7 @@
         radar.boost(true);
         toast("Varredura iniciada em todas as lojas", "signal", "radar");
         try {
-          const r = await fetch("/api/crawl", { method: "POST" });
+          const r = await adminFetch("/api/crawl", { method: "POST" });
           if (!r.ok) throw new Error();
           const res = await r.json().catch(() => ({}));
           const n = res && (res.deals ?? res.newDeals ?? res.found);
@@ -1302,7 +1314,7 @@
       async function addQuery(query) {
         query = (query || "").trim(); if (!query) return;
         try {
-          const r = await fetch("/api/queries", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query }) });
+          const r = await adminFetch("/api/queries", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query }) });
           if (!r.ok) return toast("Esse termo já existe ou é inválido", "bad");
           $("#q-new").value = "";
           toast(`Monitorando “${query}”`, "good", "radio-tower");
@@ -1311,7 +1323,7 @@
       }
       async function delQuery(query, chip) {
         try {
-          const r = await fetch("/api/queries", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ query }) });
+          const r = await adminFetch("/api/queries", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ query }) });
           if (!r.ok) throw new Error();
           chip && chip.classList.add("out");
           setTimeout(loadQueries, 260);
