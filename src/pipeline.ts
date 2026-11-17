@@ -3,11 +3,13 @@ import { crawlAll } from "./crawlers/index.ts";
 import { DealService, type Candidate } from "./services.ts";
 import { buildMarket } from "./market.ts";
 import { seasonTuning } from "./season.ts";
+import type { ScrapedProduct } from "./types.ts";
 
 export interface CycleResult {
   scraped: number;
   deals: number;
   notified: number;
+  attempted?: number; // envios tentados (limitados pelo teto do ciclo)
   season?: string;
 }
 
@@ -20,23 +22,26 @@ export function isCycleRunning(): boolean {
 
 // Um ciclo por vez: na Black Friday o intervalo cai para 15min e um ciclo
 // lento + POST /api/crawl não podem rodar em paralelo (dobrava envios e carga).
-export function runCrawlCycle(): Promise<CycleResult> {
+// `crawl` é injetável para testar o ciclo inteiro sem rede.
+export type Crawl = (extraQueries: string[]) => Promise<ScrapedProduct[]>;
+
+export function runCrawlCycle(crawl: Crawl = crawlAll): Promise<CycleResult> {
   if (running) {
     log.warn("ciclo já em andamento; reaproveitando o atual");
     return running;
   }
-  running = cycle().finally(() => {
+  running = cycle(crawl).finally(() => {
     running = null;
   });
   return running;
 }
 
-async function cycle(): Promise<CycleResult> {
+async function cycle(crawl: Crawl): Promise<CycleResult> {
   const tuning = seasonTuning();
   const { season } = tuning;
   if (season.active) log.info(`🖤 temporada ${season.label} (BF em ${season.daysToBlackFriday}d)`);
 
-  const products = await crawlAll(tuning.extraQueries);
+  const products = await crawl(tuning.extraQueries);
   const marketFor = buildMarket(products);
 
   // Fase 1: grava histórico e avalia TUDO antes de decidir o que notificar.
@@ -74,5 +79,5 @@ async function cycle(): Promise<CycleResult> {
     `ciclo: ${products.length} coletados, ${dealCount} ofertas, ${candidates.length} candidatas, ${notified} notificadas` +
       (candidates.length > cap ? ` (teto de ${cap} envios/ciclo)` : ""),
   );
-  return { scraped: products.length, deals: dealCount, notified, season: season.active ? season.label : undefined };
+  return { scraped: products.length, deals: dealCount, notified, attempted: attempts, season: season.active ? season.label : undefined };
 }

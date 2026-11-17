@@ -33,7 +33,8 @@ RUN mkdir -p /data && \
 USER app
 
 EXPOSE 3005
+# wget/curl não existem na imagem debian do bun: o healthcheck usa o próprio bun
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:3005/health || exit 1
+  CMD ["bun", "-e", "fetch('http://127.0.0.1:3005/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
 
 CMD ["bun", "run", "src/index.ts"]
