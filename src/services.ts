@@ -1,6 +1,6 @@
 import { PriceRepository, ProductRepository, DealRepository, FeedbackRepository } from "./repositories.ts";
 import { evaluate, isPriceBug } from "./deal.ts";
-import { analyzeDeal } from "./ai.ts";
+import { analyzeDeal, verdictOf } from "./ai.ts";
 import { notifyDeal } from "./telegram.ts";
 import { saveClusterDeal } from "./clusterDb.ts";
 import { classify, keywords } from "./category.ts";
@@ -159,6 +159,11 @@ export class DealService {
     if (aiComment) {
       this.dealRepo.setAiComment(c.dealId, aiComment);
       view.ai_comment = aiComment;
+    }
+    // A IA disse que não vale: a oferta fica no dashboard, mas não vira alerta.
+    if (config.skipAiPass && verdictOf(aiComment) === "PASSE") {
+      log.info(`IA vetou o alerta (PASSE): ${view.title}`);
+      return { notified: false, attempted: true };
     }
     const notified = await notifyDeal(view);
     if (notified) this.dealRepo.markNotified(c.dealId);
