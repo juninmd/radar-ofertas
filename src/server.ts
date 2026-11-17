@@ -1,4 +1,4 @@
-import { isAdminRequest } from "./adminAuth.ts";
+import { clientIp, isAdminRequest } from "./adminAuth.ts";
 import { config } from "./config.ts";
 import { log } from "./log.ts";
 import { isCycleRunning, runCrawlCycle } from "./pipeline.ts";
@@ -38,7 +38,7 @@ export function startServer() {
       const start = performance.now();
       const url = new URL(req.url);
       const { pathname } = url;
-      const ip = req.headers.get("x-forwarded-for") || server.requestIP(req)?.address || "unknown";
+      const ip = clientIp(req.headers.get("x-forwarded-for"), server.requestIP(req)?.address);
 
       // Rate Limiting Logic
       const now = Date.now();
