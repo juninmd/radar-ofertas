@@ -1,5 +1,4 @@
 import { log } from "../log.ts";
-import { extractArticleFromHtml, type ExtractedArticle, type ExtractArticleOptions } from "@juninmd/digest-kit/core";
 
 const UAS = [
   // Desktop Chrome
@@ -86,18 +85,6 @@ export function extractNextData(html: string): unknown | null {
   } catch {
     return null;
   }
-}
-
-/**
- * Extrai conteúdo textual/artigo em Markdown a partir de HTML de ofertas/produtos.
- * Integra parser de legibilidade do @juninmd/digest-kit.
- */
-export function extractProductDescription(
-  html: string,
-  options?: ExtractArticleOptions
-): ExtractedArticle | null {
-  if (!html) return null;
-  return extractArticleFromHtml(html, options);
 }
 
 // Converte valor monetário para reais SEM adivinhar escala. Aceita number já em

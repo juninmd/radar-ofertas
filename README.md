@@ -72,6 +72,30 @@ RUN_MODE=CRAWL bun run src/index.ts
 RUN_MODE=SERVER bun run src/index.ts
 ```
 
+- `RUN_MODE=CRAWL`: roda **um** ciclo e sai (bom para CronJob).
+- `RUN_MODE=SERVER`: sobe API + dashboard e, se `CRAWL_INTERVAL_MIN > 0`, agenda
+  ciclos internos (o intervalo é recalculado a cada ciclo e acelera na Black Friday).
+
+### Docker
+
+```bash
+docker build -t radar-ofertas .
+docker run --rm -p 3005:3005 --env-file .env -v radar-data:/data radar-ofertas
+```
+
+A imagem roda como usuário não-root (`app`), usa o Chromium do sistema para o
+fallback de browser e grava o SQLite em `/data` (monte um volume).
+
+### Telegram
+
+1. Crie o bot no @BotFather e preencha `TELEGRAM_BOT_TOKEN`.
+2. Adicione o bot como **admin** do canal/grupo e preencha `TELEGRAM_CHAT_ID`.
+3. Cada ciclo envia até o teto de mensagens (`MAX_NOTIFICATIONS_PER_CYCLE`, ou
+   `BF_MAX_NOTIFICATIONS_PER_CYCLE` na temporada), espaçadas por `TELEGRAM_MIN_INTERVAL_MS`.
+4. Os botões 👍/👎 viram feedback de recomendação via `POST /api/feedback`
+   (dashboard) ou long-polling com `TELEGRAM_POLL_CALLBACKS=true`. Deixe `false`
+   se o mesmo bot for usado por outro consumidor (n8n), para evitar 409.
+
 Dashboard (`public/index.html`, sem build):
 
 - **Radar ao vivo** — cada oferta é um ponto; quanto mais perto do centro, maior o desconto.
@@ -91,12 +115,12 @@ Dashboard (`public/index.html`, sem build):
 | GET | `/api/season` | fase da temporada (Black Friday) e ajustes ativos |
 | GET | `/api/stats` | feedback agregado por categoria |
 | POST | `/api/feedback` | `{ "dealId": 1, "vote": 1 \| -1 }` |
-| POST | `/api/crawl` | dispara um ciclo manualmente |
+| POST | `/api/crawl` | dispara um ciclo manualmente (409 se já houver um rodando) |
 
 ## Testes
 
 ```bash
-bun test   # detecção de oferta, recomendação, classificação
+bun test   # sem rede: detecção, recomendação, parsers (fixtures) e ensaio do ciclo Black Friday
 ```
 
 ## Deploy (cluster k3s via app-charts / ArgoCD)
@@ -108,6 +132,13 @@ bun test   # detecção de oferta, recomendação, classificação
 
 ## Variáveis principais
 
-Veja `.env.example`. Destaques: `CRAWL_QUERIES`, `CRAWL_SOURCES`,
-`CRAWL_CONCURRENCY`, `Z_THRESHOLD`, `MIN_DISCOUNT_PCT`, `NOTIFY_SCORE`,
-`LITELLM_MODEL`.
+Todas estão comentadas em `.env.example`. Resumo por grupo:
+
+| Grupo | Variáveis |
+|---|---|
+| Execução | `RUN_MODE`, `PORT`, `DB_PATH`, `LOG_LEVEL`, `CRAWL_INTERVAL_MIN` |
+| Coleta | `CRAWL_SOURCES`, `CRAWL_QUERIES`, `MAX_PER_QUERY`, `CRAWL_CONCURRENCY`, `BESTSELLER_SOURCES` |
+| Detecção | `MIN_HISTORY_POINTS`, `MIN_HISTORY_HOURS`, `Z_THRESHOLD`, `MIN_DISCOUNT_PCT`, `NOTIFY_SCORE`, `PRICE_BUG_DISCOUNT_PCT`, `LISTPRICE_MIN_DISCOUNT_PCT`, `LISTPRICE_NOTIFY`, `REDEAL_DROP_PCT`, `MARKET_TOLERANCE_PCT`, `POPULARITY_WEIGHT` |
+| Envio | `MAX_NOTIFICATIONS_PER_CYCLE`, `TELEGRAM_ENABLED`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_POLL_CALLBACKS`, `TELEGRAM_MIN_INTERVAL_MS` |
+| Black Friday | `SEASON_MODE` (`auto`/`off`/`force`), `BF_BASELINE_CUTOFF`, `BF_CRAWL_INTERVAL_MIN`, `BF_PEAK_CRAWL_INTERVAL_MIN`, `BF_MAX_NOTIFICATIONS_PER_CYCLE`, `BF_QUERIES` |
+| IA / banco | `LITELLM_ENABLED`, `LITELLM_API_BASE`, `LITELLM_API_KEY`, `LITELLM_MODEL`, `LITELLM_TIMEOUT_MS`, `CLUSTER_DATABASE_URL` |
