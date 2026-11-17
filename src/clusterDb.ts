@@ -83,10 +83,29 @@ export async function saveClusterDeal(d: ClusterDeal): Promise<boolean> {
         title = EXCLUDED.title, url = EXCLUDED.url, category = EXCLUDED.category,
         image = EXCLUDED.image, price = EXCLUDED.price, avg_price = EXCLUDED.avg_price,
         discount_pct = EXCLUDED.discount_pct, zscore = EXCLUDED.zscore, score = EXCLUDED.score,
-        reasons = EXCLUDED.reasons, ai_comment = EXCLUDED.ai_comment, updated_at = now()`;
+        reasons = EXCLUDED.reasons,
+        -- Reavaliar a mesma oferta (mesmo preço) não apaga o comentário de IA já gravado.
+        ai_comment = CASE WHEN deals.price = EXCLUDED.price
+          THEN COALESCE(EXCLUDED.ai_comment, deals.ai_comment) ELSE EXCLUDED.ai_comment END,
+        updated_at = now()`;
     return true;
   } catch (e) {
     log.warn("cluster Postgres indisponível; oferta não persistida", (e as Error).message);
+    return false;
+  }
+}
+
+/** O comentário de IA sai depois do upsert (só para candidatas): grava-o no cluster também. */
+export async function setClusterAiComment(source: string, externalId: string, comment: string): Promise<boolean> {
+  if (!clusterEnabled()) return false;
+  try {
+    await ensureSchema();
+    const s = getSql();
+    await s`UPDATE deals SET ai_comment = ${comment}, updated_at = now()
+      WHERE source = ${source} AND external_id = ${externalId}`;
+    return true;
+  } catch (e) {
+    log.warn("cluster Postgres indisponível; comentário de IA não persistido", (e as Error).message);
     return false;
   }
 }

@@ -36,6 +36,7 @@ export interface PricePoint {
 export interface DealView {
   id: number;
   product_id: number;
+  external_id: string;
   title: string;
   url: string;
   source: string;
