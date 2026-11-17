@@ -115,7 +115,7 @@ Dashboard (`public/index.html`, sem build):
 | GET | `/api/season` | fase da temporada (Black Friday) e ajustes ativos |
 | GET | `/api/stats` | feedback agregado por categoria |
 | POST | `/api/feedback` | `{ "dealId": 1, "vote": 1 \| -1 }` |
-| POST | `/api/crawl` | dispara um ciclo manualmente (409 se já houver um rodando) |
+| POST | `/api/crawl` | dispara um ciclo manualmente (409 se já houver um rodando); exige `ADMIN_TOKEN` quando configurado |
 
 ## Testes
 
