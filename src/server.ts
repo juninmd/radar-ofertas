@@ -29,7 +29,7 @@ const DASHBOARD = Bun.file(new URL("../public/index.html", import.meta.url));
 
 export function startServer() {
   if (!process.env.ADMIN_TOKEN?.trim()) {
-    log.warn("ADMIN_TOKEN não configurado: /api/crawl e /api/queries aceitam escrita sem token");
+    log.warn("ADMIN_TOKEN não configurado: /api/crawl e /api/queries respondem 403");
   }
   const server = Bun.serve({
     port: config.port,
@@ -74,7 +74,10 @@ export function startServer() {
         const adminWrite =
           (pathname === "/api/crawl" && req.method === "POST") ||
           (pathname === "/api/queries" && (req.method === "POST" || req.method === "DELETE"));
-        if (adminWrite && !isAdminRequest(req)) {
+        if (adminWrite && !process.env.ADMIN_TOKEN?.trim()) {
+          response = json({ error: "Configure ADMIN_TOKEN no servidor para liberar esta ação" }, 403);
+        }
+        else if (adminWrite && !isAdminRequest(req)) {
           response = json({ error: "Token de admin inválido" }, 401);
         }
         else if (pathname === "/health") {

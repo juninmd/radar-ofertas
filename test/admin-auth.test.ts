@@ -12,8 +12,8 @@ describe("isAdminRequest", () => {
     expect(isAdminRequest(req({ authorization: "Bearer s3cret" }), "s3cret")).toBe(true);
   });
 
-  test("sem ADMIN_TOKEN, segue aberto como antes", () => {
-    expect(isAdminRequest(req(), "")).toBe(true);
-    expect(isAdminRequest(req(), undefined)).toBe(true);
+  test("sem ADMIN_TOKEN configurado, ninguém passa", () => {
+    expect(isAdminRequest(req(), "")).toBe(false);
+    expect(isAdminRequest(req({ "x-admin-token": "qualquer" }), "  ")).toBe(false);
   });
 });
