@@ -141,8 +141,11 @@ export function getSearchQueries(): string[] {
   }
 }
 
+/** Termo de busca vai para URLs de lojas: limita o tamanho para não aceitar lixo. */
+export const MAX_QUERY_LENGTH = 120;
+
 export function addSearchQuery(query: string): boolean {
-  if (!query || !query.trim()) return false;
+  if (!query || !query.trim() || query.trim().length > MAX_QUERY_LENGTH) return false;
   try {
     db.query("INSERT INTO search_queries (query) VALUES ($query)").run({ $query: query.trim() });
     return true;
@@ -154,8 +157,9 @@ export function addSearchQuery(query: string): boolean {
 export function removeSearchQuery(query: string): boolean {
   if (!query || !query.trim()) return false;
   try {
-    db.query("DELETE FROM search_queries WHERE query = $query").run({ $query: query.trim() });
-    return true;
+    // Só true se algo foi apagado: o servidor responde 404 quando o termo não existe.
+    const { changes } = db.query("DELETE FROM search_queries WHERE query = $query").run({ $query: query.trim() });
+    return changes > 0;
   } catch {
     return false;
   }

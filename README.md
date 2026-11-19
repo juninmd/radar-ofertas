@@ -113,7 +113,9 @@ Dashboard (`public/index.html`, sem build):
 | GET | `/api/deals?limit=N` | ofertas recentes |
 | GET | `/api/top?hours=24&limit=20` | melhores ofertas (1 por produto) por score |
 | GET | `/api/season` | fase da temporada (Black Friday) e ajustes ativos |
-| GET | `/api/stats` | feedback agregado por categoria |
+| GET | `/api/queries` | termos de busca do crawler |
+| POST / DELETE | `/api/queries` | `{ "query": "whey" }` adiciona (até 120 caracteres) / remove um termo (404 se não existir); exige `ADMIN_TOKEN` |
+| GET | `/api/system/metrics` | uptime, memória e estatísticas do cache |
 | POST | `/api/feedback` | `{ "dealId": 1, "vote": 1 \| -1 }` |
 | POST | `/api/crawl` | dispara um ciclo manualmente (409 se já houver um rodando); exige `ADMIN_TOKEN` (sem ele configurado, responde 403) |
 
