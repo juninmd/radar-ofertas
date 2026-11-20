@@ -43,7 +43,7 @@ describe("re-oferta e estatística", () => {
     const db = (pr as any).db;
     const ins = db.query("INSERT INTO price_history (product_id, price, captured_at) VALUES ($p, $v, $t)");
     for (const [v, t] of [[100, "2026-10-10 10:00:00"], [100, "2026-10-12 10:00:00"], [102, "2026-10-20 10:00:00"],
-                           [140, "2026-11-05 10:00:00"], [140, "2026-11-08 10:00:00"], [1000, "2026-11-09 10:00:00"]] as const)
+                          [140, "2026-11-05 10:00:00"], [140, "2026-11-08 10:00:00"], [1000, "2026-11-09 10:00:00"]] as const)
       ins.run({ $p: pid, $v: v, $t: t });
     const st = pr.getStats(pid, {
       days: 60, now: Date.parse("2026-11-10T00:00:00Z"),
@@ -69,9 +69,4 @@ describe("preço 'de' sem confirmação de mercado", () => {
     });
     expect(confirmed.candidate).not.toBeNull();
   });
-});
-
-// Reset SEASON_MODE after tests to prevent affecting other tests
-test.afterAll(() => {
-  process.env.SEASON_MODE = "auto";
 });
