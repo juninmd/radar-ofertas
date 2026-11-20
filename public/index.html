@@ -21,6 +21,11 @@
         try { localStorage.setItem("radarAdminToken", typed); } catch {}
         return fetch(url, withToken(typed));
       }
+      // Mensagem do servidor ({ error }) quando houver: token inválido, ADMIN_TOKEN ausente, ciclo em andamento.
+      async function errorMessage(r, fallback) {
+        try { const b = await r.json(); if (b && typeof b.error === "string" && b.error.trim()) return b.error; } catch {}
+        return fallback;
+      }
       // Tema aplicado antes do primeiro paint (evita flash).
       (function () {
         var t = null;
@@ -1140,7 +1145,7 @@
         toast("Varredura iniciada em todas as lojas", "signal", "radar");
         try {
           const r = await adminFetch("/api/crawl", { method: "POST" });
-          if (!r.ok) throw new Error();
+          if (!r.ok) return toast(await errorMessage(r, "A varredura falhou. Veja os logs do servidor."), "bad");
           const res = await r.json().catch(() => ({}));
           const n = res && (res.deals ?? res.newDeals ?? res.found);
           toast(typeof n === "number" ? `Varredura concluída: ${n} ofertas detectadas` : "Varredura concluída", "good");
@@ -1315,7 +1320,7 @@
         query = (query || "").trim(); if (!query) return;
         try {
           const r = await adminFetch("/api/queries", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query }) });
-          if (!r.ok) return toast("Esse termo já existe ou é inválido", "bad");
+          if (!r.ok) return toast(await errorMessage(r, "Esse termo já existe ou é inválido"), "bad");
           $("#q-new").value = "";
           toast(`Monitorando “${query}”`, "good", "radio-tower");
           loadQueries();
@@ -1324,7 +1329,7 @@
       async function delQuery(query, chip) {
         try {
           const r = await adminFetch("/api/queries", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ query }) });
-          if (!r.ok) throw new Error();
+          if (!r.ok) return toast(await errorMessage(r, "Não consegui remover o termo"), "bad");
           chip && chip.classList.add("out");
           setTimeout(loadQueries, 260);
           toast(`“${query}” removido`, "signal", "trash-2");
