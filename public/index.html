@@ -947,7 +947,7 @@
         const max = Math.max(1, ...Object.values(counts));
         const keys = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
         $("#radar-stores").innerHTML = `<div class="eyebrow">Lojas no radar</div>` + keys.map((k) => `
-          <button class="store-row ${S.source === k ? "on" : ""}" data-source="${esc(k)}" style="--c:${storeColor(k)}">
+          <button class="store-row ${S.source === k ? "on" : ""}" data-source="${esc(k)}" aria-pressed="${S.source === k}" style="--c:${storeColor(k)}">
             <span class="dot"></span><span>${esc(storeName(k))}</span><span class="num" style="color:var(--muted);font-size:12px">${counts[k]}</span>
             <span class="bar"><i style="width:${(counts[k] / max) * 100}%"></i></span>
           </button>`).join("");
@@ -958,14 +958,14 @@
         const sc = {}, cc = {};
         S.deals.forEach((d) => { sc[d.source] = (sc[d.source] || 0) + 1; const c = d.category || "geral"; cc[c] = (cc[c] || 0) + 1; });
         const srcKeys = [...new Set([...Object.keys(STORES), ...Object.keys(sc)])].sort((a, b) => (sc[b] || 0) - (sc[a] || 0));
-        $("#chips-sources").innerHTML = `<button class="chip ${S.source === "all" ? "on" : ""}" data-source="all"><i data-lucide="store"></i>Todas as lojas <span class="n">${S.deals.length}</span></button>` +
-          srcKeys.map((k) => `<button class="chip ${S.source === k ? "on" : ""}" data-source="${esc(k)}" style="--c:${storeColor(k)}" ${!sc[k] && S.source !== k ? "disabled" : ""}><span class="sdot"></span>${esc(storeName(k))} <span class="n">${sc[k] || 0}</span></button>`).join("");
+        $("#chips-sources").innerHTML = `<button class="chip ${S.source === "all" ? "on" : ""}" data-source="all" aria-pressed="${S.source === "all"}"><i data-lucide="store"></i>Todas as lojas <span class="n">${S.deals.length}</span></button>` +
+          srcKeys.map((k) => `<button class="chip ${S.source === k ? "on" : ""}" data-source="${esc(k)}" aria-pressed="${S.source === k}" style="--c:${storeColor(k)}" ${!sc[k] && S.source !== k ? "disabled" : ""}><span class="sdot"></span>${esc(storeName(k))} <span class="n">${sc[k] || 0}</span></button>`).join("");
         const catKeys = Object.keys(cc).sort((a, b) => cc[b] - cc[a]);
-        $("#chips-cats").innerHTML = `<button class="chip ${S.category === "all" ? "on" : ""}" data-cat="all"><i data-lucide="layers"></i>Todas <span class="n">${S.deals.length}</span></button>` +
-          catKeys.map((k) => `<button class="chip ${S.category === k ? "on" : ""}" data-cat="${esc(k)}"><i data-lucide="${catIcon(k)}"></i>${esc(catName(k))} <span class="n">${cc[k]}</span></button>`).join("");
+        $("#chips-cats").innerHTML = `<button class="chip ${S.category === "all" ? "on" : ""}" data-cat="all" aria-pressed="${S.category === "all"}"><i data-lucide="layers"></i>Todas <span class="n">${S.deals.length}</span></button>` +
+          catKeys.map((k) => `<button class="chip ${S.category === k ? "on" : ""}" data-cat="${esc(k)}" aria-pressed="${S.category === k}"><i data-lucide="${catIcon(k)}"></i>${esc(catName(k))} <span class="n">${cc[k]}</span></button>`).join("");
         $("#n-fav").textContent = S.favs.size;
-        $$("#chips-toggles [data-toggle]").forEach((b) => b.classList.toggle("on", !!S[b.dataset.toggle]));
-        $$("#kpis [data-toggle]").forEach((b) => b.style.borderColor = S[b.dataset.toggle] ? "var(--accent)" : "");
+        $$("#chips-toggles [data-toggle]").forEach((b) => { b.classList.toggle("on", !!S[b.dataset.toggle]); b.setAttribute("aria-pressed", !!S[b.dataset.toggle]); });
+        $$("#kpis [data-toggle]").forEach((b) => { b.style.borderColor = S[b.dataset.toggle] ? "var(--accent)" : ""; b.setAttribute("aria-pressed", !!S[b.dataset.toggle]); });
         $$(".seg [data-view]").forEach((b) => b.classList.toggle("on", b.dataset.view === S.view));
         $("#sort").value = S.sort;
         icons();
@@ -1077,8 +1077,8 @@
               ${scoreRing(d.score)}
               <a class="btn primary go" href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener"><i data-lucide="shopping-bag"></i><span>Ir à loja</span></a>
               <button class="btn icon" data-act="open" data-id="${d.id}" title="Histórico de preço" aria-label="Histórico de preço"><i data-lucide="chart-line"></i></button>
-              <button class="btn icon vote up ${v === 1 ? "on" : ""}" data-act="vote" data-v="1" data-id="${d.id}" title="Curti: mais ofertas assim" aria-label="Curti"><i data-lucide="thumbs-up"></i></button>
-              <button class="btn icon vote down ${v === -1 ? "on" : ""}" data-act="vote" data-v="-1" data-id="${d.id}" title="Não curti: menos ofertas assim" aria-label="Não curti"><i data-lucide="thumbs-down"></i></button>
+              <button class="btn icon vote up ${v === 1 ? "on" : ""}" data-act="vote" data-v="1" data-id="${d.id}" aria-pressed="${v === 1}" title="Curti: mais ofertas assim" aria-label="Curti"><i data-lucide="thumbs-up"></i></button>
+              <button class="btn icon vote down ${v === -1 ? "on" : ""}" data-act="vote" data-v="-1" data-id="${d.id}" aria-pressed="${v === -1}" title="Não curti: menos ofertas assim" aria-label="Não curti"><i data-lucide="thumbs-down"></i></button>
             </div>
           </div>
         </article>`;
@@ -1116,7 +1116,7 @@
           const r = await fetch("/api/feedback", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ dealId: id, vote: v }) });
           if (!r.ok) throw new Error();
           S.votes[id] = v; store.set("radar:votes", S.votes);
-          $$(`.vote[data-id="${id}"]`).forEach((b) => b.classList.toggle("on", Number(b.dataset.v) === v));
+          $$(`.vote[data-id="${id}"]`).forEach((b) => { const on = Number(b.dataset.v) === v; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
           if (v > 0) { burst(btn, ["var(--good)", "var(--accent)", "var(--signal)", "var(--warn)"]); toast("Anotado: o radar vai priorizar ofertas assim", "good", "thumbs-up"); }
           else toast("Anotado: menos ofertas desse tipo", "signal", "thumbs-down");
         } catch { toast("Não salvei seu voto. Tente de novo.", "bad"); }
@@ -1211,8 +1211,8 @@
         $("#d-foot").innerHTML = `
           <a class="btn primary go" href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener"><i data-lucide="shopping-bag"></i>Comprar na ${esc(storeName(d.source))}</a>
           <button class="btn icon fav-d ${fav ? "vote up on" : ""}" data-act="fav" data-id="${d.id}" title="Favoritar (F)" aria-pressed="${fav}" aria-label="Favoritar"><i data-lucide="heart" ${fav ? 'style="fill:currentColor"' : ""}></i></button>
-          <button class="btn icon vote up ${v === 1 ? "on" : ""}" data-act="vote" data-v="1" data-id="${d.id}" aria-label="Curti"><i data-lucide="thumbs-up"></i></button>
-          <button class="btn icon vote down ${v === -1 ? "on" : ""}" data-act="vote" data-v="-1" data-id="${d.id}" aria-label="Não curti"><i data-lucide="thumbs-down"></i></button>`;
+          <button class="btn icon vote up ${v === 1 ? "on" : ""}" data-act="vote" data-v="1" data-id="${d.id}" aria-pressed="${v === 1}" aria-label="Curti"><i data-lucide="thumbs-up"></i></button>
+          <button class="btn icon vote down ${v === -1 ? "on" : ""}" data-act="vote" data-v="-1" data-id="${d.id}" aria-pressed="${v === -1}" aria-label="Não curti"><i data-lucide="thumbs-down"></i></button>`;
         icons();
       }
       function stepDrawer(dir) {
