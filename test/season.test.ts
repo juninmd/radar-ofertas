@@ -1,7 +1,19 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { config } from "../src/config.ts";
 import { blackFridayDate, seasonInfo, seasonTuning } from "../src/season.ts";
 
 describe("calendário Black Friday", () => {
+  // config é singleton por processo e o bun test compartilha o processo entre arquivos:
+  // redeal.test.ts seta SEASON_MODE=off, e a ordem de carga muda por ambiente (CI vs local).
+  let savedMode: string;
+  beforeAll(() => {
+    savedMode = config.season.mode;
+    config.season.mode = "auto";
+  });
+  afterAll(() => {
+    config.season.mode = savedMode;
+  });
+
   test("última sexta de novembro", () => {
     expect(blackFridayDate(2025).toISOString().slice(0, 10)).toBe("2025-11-28");
     expect(blackFridayDate(2026).toISOString().slice(0, 10)).toBe("2026-11-27");
