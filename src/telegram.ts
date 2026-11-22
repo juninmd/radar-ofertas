@@ -78,7 +78,7 @@ export function buildCaption(d: DealView): string {
   if (spark) lines.push(`📈 histórico: <code>${spark}</code>`);
   lines.push(`🎯 score ${(d.score * 100).toFixed(0)}/100`);
   if (d.ai_comment) lines.push(``, `🤖 <i>${escapeHtml(d.ai_comment)}</i>`);
-  lines.push(``, `🔗 ${d.url}`);
+  lines.push(``, `🔗 ${escapeHtml(d.url)}`);
   return lines.join("\n");
 }
 
