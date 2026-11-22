@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test";
-import { parseMoney, magaluSlug } from "../src/crawlers/base.ts";
+import { parseBrl, parseMoney, magaluSlug } from "../src/crawlers/base.ts";
 import { findProducts, parseAmazonProducts } from "../src/crawlers/sites.ts";
 import { sanitize } from "../src/crawlers/index.ts";
 
@@ -184,5 +184,29 @@ describe("parseAmazonProducts", () => {
     expect(res[0].listPrice).toBe(229.9);
     expect(res[0].title).toBe("Whey Protein Concentrado Dux 900g Cookies");
     expect(res[0].url).toBe("https://www.amazon.com.br/dp/B07NGL3FDY");
+  });
+});
+
+describe("parseBrl", () => {
+  test("texto com centavos de dois dígitos", () => {
+    expect(parseBrl("R$ 1.234,56")).toBe(1234.56);
+    expect(parseBrl("por R$ 999,00 à vista")).toBe(999);
+  });
+
+  test("sem ',dd' não perde a vírgula/ponto decimal (preço 10x/100x maior)", () => {
+    expect(parseBrl("R$ 12,5")).toBe(12.5);
+    expect(parseBrl("1,5")).toBe(1.5);
+    expect(parseBrl("129.90")).toBe(129.9);
+  });
+
+  test("inteiros e milhar com ponto continuam", () => {
+    expect(parseBrl("R$ 1.299")).toBe(1299);
+    expect(parseBrl("1299")).toBe(1299);
+    expect(parseBrl("R$ 1.299.")).toBe(1299);
+  });
+
+  test("sem número devolve NaN", () => {
+    expect(parseBrl("")).toBeNaN();
+    expect(parseBrl("indisponível")).toBeNaN();
   });
 });

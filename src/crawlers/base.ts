@@ -113,10 +113,9 @@ export function magaluSlug(query: string): string {
 export function parseBrl(raw: string): number {
   // "R$ 1.234,56" -> 1234.56
   const m = raw.replace(/\s/g, "").match(/([\d.]+,\d{2})/);
-  if (!m) {
-    const intMatch = raw.replace(/[^\d]/g, "");
-    return intMatch ? Number(intMatch) : NaN;
-  }
+  // Sem ",dd": interpreta o primeiro número com as regras de parseMoney em vez de
+  // juntar todos os dígitos ("12,5" virava 125, "129.90" virava 12990).
+  if (!m) return parseMoney(raw.match(/\d(?:[\d.,]*\d)?/)?.[0] ?? "");
   return Number(m[1].replace(/\./g, "").replace(",", "."));
 }
 
